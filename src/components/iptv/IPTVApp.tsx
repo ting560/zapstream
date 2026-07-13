@@ -1,0 +1,708 @@
+"use client";
+
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Tv,
+  Film,
+  Star,
+  Search,
+  Heart,
+  Loader2,
+  LogOut,
+  Menu,
+  X,
+  Server,
+  LayoutGrid,
+  List,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { useIPTVStore } from "@/lib/iptv-store";
+import {
+  getCategories,
+  getLiveStreams,
+  getVodStreams,
+  getSeries,
+  getSeriesInfo,
+} from "@/lib/iptv-client";
+import type {
+  ContentKind,
+  PlayItem,
+  IPTVCategory,
+  IPTVLiveStream,
+  IPTVVodStream,
+  IPTVSeries,
+  IPTVSeriesInfo,
+} from "@/lib/iptv-types";
+import { ContentCard } from "./ContentCard";
+import { PlayerModal } from "./PlayerModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const TABS: { kind: ContentKind; label: string; icon: any }[] = [
+  { kind: "live", label: "TV ao Vivo", icon: Tv },
+  { kind: "vod", label: "Filmes", icon: Film },
+  { kind: "series", label: "Séries", icon: Star },
+];
+
+export function IPTVApp() {
+  const {
+    credentials,
+    setAuthenticated,
+    activeTab,
+    setActiveTab,
+    activeCategory,
+    setActiveCategory,
+    search,
+    setSearch,
+    currentPlay,
+    setPlay,
+    favorites,
+  } = useIPTVStore();
+
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const [categories, setCategories] = useState<IPTVCategory[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [loadingCats, setLoadingCats] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [error, setError] = useState("");
+
+  // Series detail dialog
+  const [seriesDialog, setSeriesDialog] = useState<{
+    open: boolean;
+    series?: IPTVSeries;
+    info?: IPTVSeriesInfo;
+    loading: boolean;
+  }>({ open: false, loading: false });
+
+  // Carregar categorias quando muda o tab
+  useEffect(() => {
+    let cancelled = false;
+    setShowFavorites(false);
+    setActiveCategory("all");
+    setCategories([]);
+    setItems([]);
+    setError("");
+    setLoadingCats(true);
+    getCategories(credentials, activeTab)
+      .then((cats) => {
+        if (!cancelled) setCategories(cats);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCats(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, credentials, setActiveCategory]);
+
+  // Carregar items quando muda categoria (ou tab)
+  useEffect(() => {
+    if (showFavorites) return;
+    let cancelled = false;
+    setError("");
+    setLoadingItems(true);
+    setItems([]);
+
+    const loader =
+      activeTab === "live"
+        ? getLiveStreams
+        : activeTab === "vod"
+        ? getVodStreams
+        : getSeries;
+
+    loader(credentials, activeCategory)
+      .then((data) => {
+        if (!cancelled) setItems(data);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingItems(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, activeCategory, credentials, showFavorites]);
+
+  // Filtrar por busca
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter((it) => (it.name || "").toLowerCase().includes(q));
+  }, [items, search]);
+
+  // Favoritos do tipo atual
+  const favItems = useMemo(() => {
+    return favorites.filter((f) => f.kind === activeTab);
+  }, [favorites, activeTab]);
+
+  const handlePlay = useCallback(
+    (item: PlayItem) => {
+      // Se for série, abrir dialog para escolher episódio
+      if (item.kind === "series" && !item.episode) {
+        setSeriesDialog({ open: true, series: item as any, loading: true });
+        getSeriesInfo(credentials, String(item.id))
+          .then((info) => {
+            setSeriesDialog((s) => ({ ...s, info, loading: false }));
+          })
+          .catch((e) => {
+            setSeriesDialog((s) => ({
+              ...s,
+              loading: false,
+              open: false,
+            }));
+            setError(e.message);
+          });
+        return;
+      }
+      setPlay(item);
+    },
+    [credentials, setPlay]
+  );
+
+  const handleLogout = () => {
+    setAuthenticated(false);
+  };
+
+  // Quantidade limite de items por busca (para não estourar o DOM com 50k items)
+  const displayItems = showFavorites
+    ? favItems.map((f) => ({
+        num: 0,
+        name: f.name,
+        stream_id: f.id,
+        stream_icon: f.logo,
+        series_id: f.id,
+        cover: f.logo,
+        container_extension: "mp4",
+        rating: "",
+        category_id: "",
+        added: "",
+        rating_5based: 0,
+        stream_type: "",
+        custom_sid: "",
+        direct_source: "",
+      }))
+    : filteredItems.slice(0, 800);
+
+  const totalCount = showFavorites ? favItems.length : filteredItems.length;
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800">
+        <div className="px-4 sm:px-6 py-3 flex items-center gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-purple-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+              <Tv className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold hidden sm:block">ZapStream</span>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex items-center gap-1 ml-2 sm:ml-4">
+            {TABS.map((t) => (
+              <Button
+                key={t.kind}
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveTab(t.kind);
+                  setShowFavorites(false);
+                }}
+                className={cn(
+                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                  activeTab === t.kind && !showFavorites
+                    ? "bg-zinc-800 text-white"
+                    : ""
+                )}
+              >
+                <t.icon className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t.label}</span>
+              </Button>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFavorites(true)}
+              className={cn(
+                "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                showFavorites ? "bg-zinc-800 text-white" : ""
+              )}
+            >
+              <Heart className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Favoritos</span>
+              {favorites.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1 h-5 px-1.5 bg-red-600 text-white"
+                >
+                  {favorites.length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="flex-1 max-w-md ml-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar..."
+                className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
+              />
+            </div>
+          </div>
+
+          {/* Logout */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-zinc-400 hover:text-white hover:bg-zinc-800/50 shrink-0"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+
+      {/* Body: sidebar + content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar (categorias) */}
+        <aside
+          className={cn(
+            "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform lg:translate-x-0 top-[57px] lg:top-0",
+            showMobileSidebar ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="p-4 border-b border-zinc-800 flex items-center justify-between lg:hidden">
+            <span className="font-medium text-sm">Categorias</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMobileSidebar(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <ScrollArea className="h-[calc(100vh-57px)] lg:h-[calc(100vh-57px)]">
+            <div className="p-3">
+              <button
+                onClick={() => {
+                  setActiveCategory("all");
+                  setShowFavorites(false);
+                  setShowMobileSidebar(false);
+                }}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors",
+                  activeCategory === "all" && !showFavorites
+                    ? "bg-red-600 text-white"
+                    : "text-zinc-300 hover:bg-zinc-800"
+                )}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Todas
+              </button>
+
+              {showFavorites && (
+                <button
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 bg-red-600 text-white"
+                >
+                  <Heart className="h-4 w-4 fill-current" />
+                  Favoritos ({favItems.length})
+                </button>
+              )}
+
+              <div className="mt-2 mb-1 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                Categorias
+              </div>
+
+              {loadingCats ? (
+                <div className="space-y-2 px-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full bg-zinc-800" />
+                  ))}
+                </div>
+              ) : categories.length === 0 ? (
+                <p className="text-xs text-zinc-500 px-3 py-2">
+                  Nenhuma categoria.
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.category_id}
+                      onClick={() => {
+                        setActiveCategory(cat.category_id);
+                        setShowFavorites(false);
+                        setShowMobileSidebar(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors group",
+                        activeCategory === cat.category_id && !showFavorites
+                          ? "bg-red-600 text-white"
+                          : "text-zinc-300 hover:bg-zinc-800"
+                      )}
+                      title={cat.category_name}
+                    >
+                      <span className="truncate flex-1">
+                        {cat.category_name}
+                      </span>
+                      <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </aside>
+
+        {/* Overlay mobile */}
+        {showMobileSidebar && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden top-[57px]"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+        )}
+
+        {/* Content */}
+        <main className="flex-1 overflow-hidden flex flex-col">
+          {/* Mobile sidebar toggle */}
+          <div className="lg:hidden p-3 border-b border-zinc-800 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMobileSidebar(true)}
+              className="bg-zinc-900 border-zinc-700 text-white"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Categorias
+            </Button>
+            <span className="text-xs text-zinc-400 truncate">
+              {showFavorites
+                ? `Favoritos (${favItems.length})`
+                : activeCategory === "all"
+                ? "Todas as categorias"
+                : categories.find((c) => c.category_id === activeCategory)
+                    ?.category_name || "Categoria"}
+            </span>
+          </div>
+
+          {/* Stats bar */}
+          <div className="px-4 sm:px-6 py-3 border-b border-zinc-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Server className="h-4 w-4 text-zinc-500 shrink-0" />
+              <span className="text-xs text-zinc-400 truncate">
+                {credentials.server}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {!showFavorites && (
+                <span className="text-xs text-zinc-400">
+                  {totalCount.toLocaleString("pt-BR")} itens
+                </span>
+              )}
+              <div className="hidden sm:flex items-center gap-1 border border-zinc-800 rounded-lg p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "h-7 w-7",
+                    viewMode === "grid" ? "bg-zinc-800 text-white" : "text-zinc-500"
+                  )}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "h-7 w-7",
+                    viewMode === "list" ? "bg-zinc-800 text-white" : "text-zinc-500"
+                  )}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 sm:p-6">
+              {error ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <p className="text-red-400 mb-2">Erro ao carregar conteúdo</p>
+                  <p className="text-sm text-zinc-500 max-w-md">{error}</p>
+                </div>
+              ) : loadingItems && !showFavorites ? (
+                <div
+                  className={cn(
+                    "grid gap-3",
+                    viewMode === "grid"
+                      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  )}
+                >
+                  {Array.from({ length: 18 }).map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      className={cn(
+                        "bg-zinc-800",
+                        viewMode === "grid"
+                          ? activeTab === "live"
+                            ? "aspect-square rounded-xl"
+                            : "aspect-[2/3] rounded-xl"
+                          : "h-16 rounded-lg"
+                      )}
+                    />
+                  ))}
+                </div>
+              ) : displayItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  {showFavorites ? (
+                    <>
+                      <Heart className="h-12 w-12 text-zinc-700 mb-3" />
+                      <p className="text-zinc-400 font-medium">
+                        Nenhum favorito ainda
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Clique no coração de um canal ou filme para adicioná-lo
+                        aqui.
+                      </p>
+                    </>
+                  ) : search ? (
+                    <>
+                      <Search className="h-12 w-12 text-zinc-700 mb-3" />
+                      <p className="text-zinc-400 font-medium">
+                        Nenhum resultado para &quot;{search}&quot;
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-zinc-400">Nenhum item disponível.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={cn(
+                      "grid gap-3",
+                      viewMode === "grid"
+                        ? activeTab === "live"
+                          ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                          : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    )}
+                  >
+                    {displayItems.map((item, idx) => {
+                      const id =
+                        activeTab === "series"
+                          ? item.series_id
+                          : item.stream_id;
+                      const name = item.name || `Item ${idx + 1}`;
+                      const logo =
+                        activeTab === "series"
+                          ? item.cover
+                          : item.stream_icon;
+                      const rating =
+                        item.rating_5based || item.rating || "";
+
+                      return (
+                        <ContentCard
+                          key={`${activeTab}-${id}-${idx}`}
+                          id={id}
+                          kind={activeTab}
+                          name={name}
+                          logo={logo}
+                          rating={rating}
+                          containerExtension={item.container_extension}
+                          onPlay={handlePlay}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {!showFavorites &&
+                    totalCount > displayItems.length && (
+                      <div className="mt-6 text-center text-xs text-zinc-500">
+                        Mostrando {displayItems.length} de{" "}
+                        {totalCount.toLocaleString("pt-BR")} itens.
+                        {search
+                          ? " Refine a busca para ver mais."
+                          : " Use a busca para encontrar itens específicos."}
+                      </div>
+                    )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </main>
+      </div>
+
+      {/* Player */}
+      {currentPlay && (
+        <PlayerModal
+          item={currentPlay}
+          credentials={credentials}
+          onClose={() => setPlay(null)}
+        />
+      )}
+
+      {/* Dialog de episódios para séries */}
+      <Dialog
+        open={seriesDialog.open}
+        onOpenChange={(v) =>
+          !v && setSeriesDialog({ open: false, loading: false })
+        }
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {seriesDialog.series?.logo && (
+                <img
+                  src={seriesDialog.series.logo}
+                  alt=""
+                  className="h-10 w-8 object-cover rounded"
+                />
+              )}
+              <span className="truncate">{seriesDialog.series?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {seriesDialog.loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+            </div>
+          ) : seriesDialog.info ? (
+            <div className="overflow-hidden flex flex-col gap-4">
+              {seriesDialog.info.info?.plot && (
+                <p className="text-sm text-zinc-400 line-clamp-3">
+                  {seriesDialog.info.info.plot}
+                </p>
+              )}
+
+              {seriesDialog.info.info?.genre && (
+                <div className="flex flex-wrap gap-1">
+                  {seriesDialog.info.info.genre
+                    .split(",")
+                    .map((g) => g.trim())
+                    .filter(Boolean)
+                    .slice(0, 5)
+                    .map((g, i) => (
+                      <Badge
+                        key={i}
+                        variant="secondary"
+                        className="bg-zinc-800 text-zinc-300"
+                      >
+                        {g}
+                      </Badge>
+                    ))}
+                </div>
+              )}
+
+              <ScrollArea className="flex-1 max-h-[55vh]">
+                <div className="space-y-4 pr-2">
+                  {(seriesDialog.info.seasons || []).map((season) => {
+                    const epsArr = seriesDialog.info?.episodes;
+                    const eps = Array.isArray(epsArr)
+                      ? epsArr.filter(
+                          (e) =>
+                            Number(e.season) === Number(season.season_number)
+                        )
+                      : epsArr?.[String(season.season_number)] || [];
+                    if (eps.length === 0) return null;
+                    return (
+                      <div key={season.season_number}>
+                        <h4 className="text-sm font-semibold mb-2 text-zinc-300">
+                          Temporada {season.season_number}{" "}
+                          <span className="text-zinc-500 text-xs">
+                            ({eps.length} eps)
+                          </span>
+                        </h4>
+                        <div className="space-y-1.5">
+                          {eps.map((ep) => (
+                            <button
+                              key={ep.id}
+                              onClick={() => {
+                                setPlay({
+                                  kind: "series",
+                                  id: ep.id,
+                                  name: seriesDialog.series?.name || "",
+                                  logo: seriesDialog.series?.logo,
+                                  episode: {
+                                    id: ep.id,
+                                    title: `T${season.season_number}E${ep.episode_num} - ${ep.title}`,
+                                    container_extension:
+                                      ep.container_extension || "mp4",
+                                  },
+                                });
+                                setSeriesDialog({
+                                  open: false,
+                                  loading: false,
+                                });
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-sm flex items-center justify-between gap-3 group"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium truncate">
+                                  Ep. {ep.episode_num}: {ep.title}
+                                </p>
+                                {ep.info?.duration && (
+                                  <p className="text-xs text-zinc-500">
+                                    {ep.info.duration}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="bg-primary text-primary-foreground rounded-full h-7 w-7 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                <svg
+                                  className="h-3 w-3 fill-current ml-0.5"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+          ) : (
+            <p className="text-zinc-500 py-8 text-center">
+              Não foi possível carregar informações da série.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
