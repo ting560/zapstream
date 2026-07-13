@@ -1,60 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { IPTVCredentials } from "@/lib/iptv-types";
+import http from "http";
+import https from "https";
 
-/**
- * Helper para fazer chamadas ao Xtream Codes API do lado do servidor.
- * Esconde credenciais do cliente e evita problemas de CORS.
- */
+function httpRequest(url: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const mod = u.protocol === "https:" ? https : http;
+    const req = mod.get(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "application/json, text/plain, */*",
+          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+          Referer: u.origin + "/",
+          "Cache-Control": "no-cache",
+        },
+        timeout: 20000,
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => (data += chunk.toString()));
+        res.on("end", () => resolve({ status: res.statusCode || 500, body: data }));
+      }
+    );
+    req.on("error", (e) => reject(e));
+    req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
+  });
+}
+
 export async function callXtreamAPI(
   credentials: IPTVCredentials,
   params: Record<string, string | undefined>
 ) {
-  const url = new URL(
-    credentials.server.replace(/\/$/, "") + "/player_api.php"
-  );
+  const url = new URL(credentials.server.replace(/\/$/, "") + "/player_api.php");
   url.searchParams.set("username", credentials.username);
   url.searchParams.set("password", credentials.password);
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== "") {
-      url.searchParams.set(k, v);
-    }
+    if (v !== undefined && v !== "") url.searchParams.set(k, v);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-
   try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: new URL(credentials.server).origin + "/",
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      return {
-        ok: false,
-        status: res.status,
-        error: `Servidor respondeu ${res.status}`,
-      };
-    }
-
-    const text = await res.text();
+    const { status, body } = await httpRequest(url.toString());
+    if (status !== 200) return { ok: false, status, error: `Servidor respondeu ${status}` };
     try {
-      const json = JSON.parse(text);
+      const json = JSON.parse(body);
       return { ok: true, data: json };
     } catch {
       return { ok: false, error: "Resposta inválida do servidor" };
     }
   } catch (e: any) {
-    if (e?.name === "AbortError") {
-      return { ok: false, error: "Timeout ao contatar servidor" };
-    }
+    if (e?.message === "Timeout") return { ok: false, error: "Timeout ao contatar servidor" };
     return { ok: false, error: e?.message ?? "Erro desconhecido" };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -75,10 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!body.credentials?.server || !body.credentials?.username || !body.credentials?.password) {
-    return NextResponse.json(
-      { ok: false, error: "Credenciais incompletas" },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: "Credenciais incompletas" }, { status: 400 });
   }
 
   const result = await callXtreamAPI(body.credentials, {
@@ -89,9 +85,6 @@ export async function POST(req: NextRequest) {
     vod_id: body.vod_id,
   });
 
-  if (!result.ok) {
-    return NextResponse.json(result, { status: 502 });
-  }
-
+  if (!result.ok) return NextResponse.json(result, { status: 502 });
   return NextResponse.json(result);
 }
