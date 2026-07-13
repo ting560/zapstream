@@ -17,20 +17,37 @@ async function callApi(
   action?: string,
   extra?: Record<string, string>
 ) {
-  const res = await fetch("/api/iptv", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ credentials, action, ...extra }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || `Erro ${res.status}`);
+  const base = credentials.server.replace(/\/$/, "");
+  const url = new URL(base + "/player_api.php");
+  url.searchParams.set("username", credentials.username);
+  url.searchParams.set("password", credentials.password);
+  if (action) url.searchParams.set("action", action);
+  for (const [k, v] of Object.entries(extra || {})) {
+    if (v) url.searchParams.set(k, v);
   }
-  const json = await res.json();
-  if (!json.ok) {
-    throw new Error(json.error || "Erro ao contatar o servidor");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/json, text/plain, */*",
+      },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`Servidor respondeu ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (e: any) {
+    clearTimeout(timeout);
+    if (e?.name === "AbortError") {
+      throw new Error("Timeout ao contatar servidor");
+    }
+    throw new Error(e?.message || "Erro ao contatar o servidor");
   }
-  return json.data;
 }
 
 // ----- Auth -----
@@ -106,9 +123,6 @@ export async function getSeriesInfo(
 }
 
 // ----- Construção de URLs de stream -----
-// IMPORTANTE: Todos os streams passam por /api/stream (proxy server-side).
-// O servidor ooo.fo retorna 302 redirect para outro host (Sucuri/CDN) sem CORS,
-// o que faria o hls.js do navegador falhar. O proxy também reescreve URLs no manifest HLS.
 export function buildStreamUrl(
   credentials: IPTVCredentials,
   kind: ContentKind,
@@ -120,12 +134,10 @@ export function buildStreamUrl(
   const p = encodeURIComponent(credentials.password);
   let direct: string;
   if (kind === "live") {
-    // Live: usar .m3u8 (HLS) - browsers suportam via hls.js
     direct = `${base}/live/${u}/${p}/${id}.m3u8`;
   } else if (kind === "vod") {
     direct = `${base}/movie/${u}/${p}/${id}.${ext}`;
   } else {
-    // series
     direct = `${base}/series/${u}/${p}/${id}.${ext}`;
   }
   return `/api/stream?url=${encodeURIComponent(direct)}`;
