@@ -53,3 +53,6 @@ server.log
 # Skills directory
 /skills/
 workspace-*
+# Database
+*.db
+*.db-journal
