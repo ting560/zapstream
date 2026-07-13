@@ -17,6 +17,37 @@ async function callApi(
   action?: string,
   extra?: Record<string, string>
 ) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  const base = credentials.server.replace(/\/$/, "");
+  const url = new URL(base + "/player_api.php");
+  url.searchParams.set("username", credentials.username);
+  url.searchParams.set("password", credentials.password);
+  if (action) url.searchParams.set("action", action);
+  for (const [k, v] of Object.entries(extra || {})) {
+    if (v) url.searchParams.set(k, v);
+  }
+
+  try {
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: { Accept: "application/json, text/plain, */*" },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`Servidor respondeu ${res.status}`);
+    return await res.json();
+  } catch {
+    clearTimeout(timeout);
+    return callApiViaProxy(credentials, action, extra);
+  }
+}
+
+async function callApiViaProxy(
+  credentials: IPTVCredentials,
+  action?: string,
+  extra?: Record<string, string>
+) {
   const res = await fetch("/api/iptv", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
