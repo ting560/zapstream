@@ -34,7 +34,7 @@ const DEFAULT_SERVERS: ServerItem[] = [
   {
     id: "2",
     name: "srv.cldplay.in",
-    url: "http://srv.cldplay.in:80",
+    url: "https://srv.cldplay.in",
     username: "lelezago",
     password: "lelezago@2021",
     active: true,
