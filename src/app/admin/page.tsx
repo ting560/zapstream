@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
+import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,9 +129,15 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={loadServers} className="text-zinc-400 hover:text-white">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={loadServers} className="text-zinc-400 hover:text-white">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/admin/traffic")} className="text-zinc-400 hover:text-white">
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Tráfego
+            </Button>
+          </div>
         </div>
 
         {error && (

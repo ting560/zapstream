@@ -6,11 +6,14 @@ import { LoginCard } from "@/components/iptv/LoginCard";
 import { IPTVApp } from "@/components/iptv/IPTVApp";
 import { Ads } from "@/components/Ads";
 import { authenticate } from "@/lib/iptv-client";
+import { useTracking } from "@/hooks/useTracking";
 
 export default function Home() {
   const { isAuthenticated, setAuthenticated, setCredentials, theme, setTheme } = useIPTVStore();
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<"loading" | "login" | "app">("loading");
+
+  useTracking();
 
   useEffect(() => {
     setHydrated(true);
