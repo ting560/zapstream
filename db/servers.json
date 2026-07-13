@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "name": "ooo.fo",
+    "url": "https://ooo.fo",
+    "username": "josias.barbosa.costa@gmail.com",
+    "password": "123abc",
+    "active": true,
+    "createdAt": "2026-07-13T10:22:00.901Z"
+  },
+  {
+    "id": "2",
+    "name": "srv.cldplay.in",
+    "url": "http://srv.cldplay.in:80",
+    "username": "lelezago",
+    "password": "lelezago@2021",
+    "active": true,
+    "createdAt": "2026-07-13T10:22:00.902Z"
+  }
+]
