@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useIPTVStore } from "@/lib/iptv-store";
 import { LoginCard } from "@/components/iptv/LoginCard";
 import { IPTVApp } from "@/components/iptv/IPTVApp";
 import { authenticate } from "@/lib/iptv-client";
 
 export default function Home() {
-  const { isAuthenticated, setAuthenticated, theme, setTheme, credentials } = useIPTVStore();
+  const { isAuthenticated, setAuthenticated, setCredentials, theme, setTheme } = useIPTVStore();
   const [hydrated, setHydrated] = useState(false);
-  const [autoLogging, setAutoLogging] = useState(false);
+  const [state, setState] = useState<"loading" | "login" | "app">("loading");
 
   useEffect(() => {
     setHydrated(true);
@@ -26,19 +26,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (hydrated && !isAuthenticated && !autoLogging) {
-      setAutoLogging(true);
-      authenticate(credentials)
-        .then((data) => {
-          if (data?.user_info?.auth === 1) {
-            setAuthenticated(true);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [hydrated, isAuthenticated, autoLogging, credentials, setAuthenticated]);
+    if (!hydrated) return;
+    if (isAuthenticated) { setState("app"); return; }
+    fetch("/api/admin/servers")
+      .then((r) => r.json())
+      .then((servers) => {
+        if (!Array.isArray(servers)) throw new Error();
+        const active = servers.filter((s: any) => s.active);
+        if (active.length === 0) { setState("login"); return; }
+        const server = active[0];
+        const creds = { server: server.url, username: server.username, password: server.password };
+        setCredentials(creds);
+        return authenticate(creds);
+      })
+      .then((data) => {
+        if (data?.user_info?.auth === 1) {
+          setAuthenticated(true);
+          setState("app");
+        } else {
+          setState("login");
+        }
+      })
+      .catch(() => setState("login"));
+  }, [hydrated]);
 
-  if (!hydrated || (autoLogging && !isAuthenticated)) {
+  if (!hydrated || state === "loading") {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-zinc-500 text-sm">Conectando...</div>
@@ -46,7 +58,7 @@ export default function Home() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (state === "login") {
     return <LoginCard />;
   }
 
