@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useIPTVStore } from "@/lib/iptv-store";
 import { LoginCard } from "@/components/iptv/LoginCard";
 import { IPTVApp } from "@/components/iptv/IPTVApp";
+import { authenticate } from "@/lib/iptv-client";
 
 export default function Home() {
-  const { isAuthenticated, theme, setTheme, credentials } = useIPTVStore();
+  const { isAuthenticated, setAuthenticated, theme, setTheme, credentials } = useIPTVStore();
   const [hydrated, setHydrated] = useState(false);
+  const [autoLogging, setAutoLogging] = useState(false);
 
-  // Aplicar tema dark/light
   useEffect(() => {
     setHydrated(true);
     if (theme === "dark") {
@@ -19,16 +20,28 @@ export default function Home() {
     }
   }, [theme, setTheme]);
 
-  // Aplicar fundo dark sempre (a UI foi desenhada para dark)
   useEffect(() => {
     document.body.style.backgroundColor = "#09090b";
     document.body.style.color = "#fff";
   }, []);
 
-  if (!hydrated) {
+  useEffect(() => {
+    if (hydrated && !isAuthenticated && !autoLogging) {
+      setAutoLogging(true);
+      authenticate(credentials)
+        .then((data) => {
+          if (data?.user_info?.auth === 1) {
+            setAuthenticated(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [hydrated, isAuthenticated, autoLogging, credentials, setAuthenticated]);
+
+  if (!hydrated || (autoLogging && !isAuthenticated)) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-zinc-500 text-sm">Carregando...</div>
+        <div className="text-zinc-500 text-sm">Conectando...</div>
       </div>
     );
   }
