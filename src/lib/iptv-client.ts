@@ -144,5 +144,5 @@ export function buildStreamUrl(
   } else {
     direct = `${base}/series/${u}/${p}/${id}.${ext}`;
   }
-  return `/api/stream?url=${encodeURIComponent(direct)}`;
+  return direct.startsWith("https://") ? direct : `/api/stream?url=${encodeURIComponent(direct)}`;
 }

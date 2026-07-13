@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
 
   if (isManifest) {
     const text = upstream.body.toString("utf-8");
-    const rewritten = rewriteManifest(text, upstream.headers["x-final-url"] || target);
+    const rewritten = rewriteManifest(text, target);
     return new NextResponse(rewritten, {
       status: 200,
       headers: {
