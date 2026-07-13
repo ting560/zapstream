@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useIPTVStore } from "@/lib/iptv-store";
 import { LoginCard } from "@/components/iptv/LoginCard";
 import { IPTVApp } from "@/components/iptv/IPTVApp";
+import { Ads } from "@/components/Ads";
 import { authenticate } from "@/lib/iptv-client";
 
 export default function Home() {
@@ -62,5 +63,10 @@ export default function Home() {
     return <LoginCard />;
   }
 
-  return <IPTVApp />;
+  return (
+    <>
+      <IPTVApp />
+      <Ads />
+    </>
+  );
 }
