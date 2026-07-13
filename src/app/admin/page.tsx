@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3 } from "lucide-react";
+import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3, Lock, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -266,7 +266,93 @@ export default function AdminPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Controle Parental */}
+        <ParentalControlCard />
       </div>
     </div>
+  );
+}
+
+function ParentalControlCard() {
+  const [open, setOpen] = useState(false);
+  const [adultInput, setAdultInput] = useState("");
+  const [pin, setPin] = useState("123456");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((s) => {
+        if (s?.adultCategories) setAdultInput(s.adultCategories.join(", "));
+        if (s?.pin) setPin(s.pin);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const cats = adultInput.split(",").map((s: string) => s.trim()).filter(Boolean);
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adultCategories: cats, pin }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <Card className="bg-zinc-900/70 backdrop-blur-xl border-zinc-800 mt-6">
+      <CardHeader className="cursor-pointer select-none" onClick={() => setOpen(!open)}>
+        <CardTitle className="text-lg text-zinc-200 flex items-center gap-2">
+          <Lock className="h-4 w-4 text-yellow-500" />
+          Controle Parental
+          <span className="text-xs text-zinc-500 font-normal ml-auto">
+            {open ? "Clique para recolher" : "Clique para expandir"}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      {open && (
+        <CardContent>
+          <p className="text-sm text-zinc-400 mb-4">
+            Configure categorias de conteúdo adulto que exigirão PIN para acessar.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-zinc-300">Categorias Adultas</Label>
+              <p className="text-xs text-zinc-500 mb-1">
+                Nomes das categorias separados por vírgula (ex: Erótico, Adultos, XXX)
+              </p>
+              <Input
+                value={adultInput}
+                onChange={(e) => setAdultInput(e.target.value)}
+                placeholder="Erótico, Adultos, XXX"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-zinc-300">PIN de Acesso</Label>
+              <Input
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="123456"
+                maxLength={6}
+                className="bg-zinc-800 border-zinc-700 text-white w-40"
+              />
+            </div>
+            <Button onClick={handleSave} disabled={saving} className="bg-yellow-600 hover:bg-yellow-500 text-white">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar"}
+            </Button>
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }

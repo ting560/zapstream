@@ -41,6 +41,7 @@ import type {
 } from "@/lib/iptv-types";
 import { ContentCard } from "./ContentCard";
 import { PlayerModal } from "./PlayerModal";
+import { PinModal } from "./PinModal";
 import {
   Dialog,
   DialogContent,
@@ -86,6 +87,33 @@ export function IPTVApp() {
     info?: IPTVSeriesInfo;
     loading: boolean;
   }>({ open: false, loading: false });
+
+  // PIN parental
+  const [adultCategories, setAdultCategories] = useState<string[]>([]);
+  const [pin, setPin] = useState("123456");
+  const [pinVerified, setPinVerified] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingPlay, setPendingPlay] = useState<PlayItem | null>(null);
+
+  // Carregar configuracoes (categorias adultas)
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((settings) => {
+        if (settings?.adultCategories) setAdultCategories(settings.adultCategories);
+        if (settings?.pin) setPin(settings.pin);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handlePinUnlock = () => {
+    setPinVerified(true);
+    setShowPinModal(false);
+    if (pendingPlay) {
+      handlePlayContent(pendingPlay);
+      setPendingPlay(null);
+    }
+  };
 
   // Carregar categorias quando muda o tab
   useEffect(() => {
@@ -153,9 +181,8 @@ export function IPTVApp() {
     return favorites.filter((f) => f.kind === activeTab);
   }, [favorites, activeTab]);
 
-  const handlePlay = useCallback(
+  const handlePlayContent = useCallback(
     (item: PlayItem) => {
-      // Se for série, abrir dialog para escolher episódio
       if (item.kind === "series" && !item.episode) {
         setSeriesDialog({ open: true, series: item as any, loading: true });
         getSeriesInfo(credentials, String(item.id))
@@ -175,6 +202,37 @@ export function IPTVApp() {
       setPlay(item);
     },
     [credentials, setPlay]
+  );
+
+  const handlePlay = useCallback(
+    (item: PlayItem) => {
+      // Verificar se é conteudo adulto
+      if (adultCategories.length > 0) {
+        const fullItem = items.find(
+          (i) =>
+            (i.stream_id === item.id || i.series_id === item.id) &&
+            i.category_id
+        );
+        const catId = fullItem?.category_id;
+        const cat = categories.find((c) => c.category_id === catId);
+        const catName = (cat?.category_name || "").toLowerCase();
+
+        const isAdult = adultCategories.some((ac) =>
+          catName.includes(ac.toLowerCase())
+        );
+
+        if (isAdult) {
+          if (!pinVerified) {
+            setPendingPlay(item);
+            setShowPinModal(true);
+            return;
+          }
+        }
+      }
+
+      handlePlayContent(item);
+    },
+    [items, categories, adultCategories, pinVerified, handlePlayContent]
   );
 
   const handleLogout = () => {
@@ -573,6 +631,14 @@ export function IPTVApp() {
           onClose={() => setPlay(null)}
         />
       )}
+
+      {/* PIN Modal */}
+      <PinModal
+        open={showPinModal}
+        correctPin={pin}
+        onUnlock={handlePinUnlock}
+        onClose={() => { setShowPinModal(false); setPendingPlay(null); }}
+      />
 
       {/* Dialog de episódios para séries */}
       <Dialog
