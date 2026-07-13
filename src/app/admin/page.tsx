@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, Check, X, AlertCircle } from "lucide-react";
+import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 
 interface ServerItem {
   id: string;
@@ -229,20 +230,25 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-3">
                 {servers.map((server) => (
-                  <div key={server.id} className="flex items-center justify-between p-4 rounded-xl bg-zinc-800/30 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors">
+                  <div key={server.id} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${server.active ? "bg-zinc-800/30 border-zinc-800/50 hover:border-zinc-700/50" : "bg-zinc-800/10 border-zinc-800/30 opacity-60"}`}>
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className={`h-2 w-2 rounded-full shrink-0 ${server.active ? "bg-green-500" : "bg-zinc-600"}`} />
+                      <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${server.active ? "bg-green-500 shadow-lg shadow-green-500/30" : "bg-zinc-600"}`} />
                       <div className="min-w-0">
                         <p className="font-medium truncate">{server.name}</p>
-                        <p className="text-sm text-zinc-400 truncate">{server.url}</p>
+                        <p className="text-sm truncate text-zinc-400">{server.url}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-2 mr-2">
+                        <span className="text-xs text-zinc-500">{server.active ? "Ativo" : "Inativo"}</span>
+                        <Switch
+                          checked={server.active}
+                          onCheckedChange={() => handleToggleActive(server)}
+                          className="data-[state=checked]:bg-green-500"
+                        />
+                      </div>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white" onClick={() => handleEdit(server)} title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white" onClick={() => handleToggleActive(server)} title={server.active ? "Desativar" : "Ativar"}>
-                        {server.active ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-zinc-600" />}
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-400" onClick={() => handleDelete(server.id)} title="Excluir">
                         <Trash2 className="h-3.5 w-3.5" />
