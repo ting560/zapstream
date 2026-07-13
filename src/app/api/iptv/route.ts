@@ -27,12 +27,8 @@ export async function callXtreamAPI(
     const res = await fetch(url.toString(), {
       signal: controller.signal,
       headers: {
-        "User-Agent": "VLC/3.0.21 LibVLC/3.0.21",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Referer: new URL(credentials.server).origin + "/",
-        Accept: "*/*",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        Origin: new URL(credentials.server).origin,
-        "X-Forwarded-For": "177.0.0.1",
         Accept: "application/json",
       },
     });

@@ -33,24 +33,43 @@ async function callApi(
     const res = await fetch(url.toString(), {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         Accept: "application/json, text/plain, */*",
       },
     });
     clearTimeout(timeout);
     if (!res.ok) throw new Error(`Servidor respondeu ${res.status}`);
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (e: any) {
     clearTimeout(timeout);
-    if (e?.name === "AbortError") {
-      throw new Error("Timeout ao contatar servidor");
+    if (e?.name === "TypeError" || e?.message?.includes("Failed to fetch") || e?.message?.includes("NetworkError") || e?.message?.includes("load") || e?.message?.includes("ERR_")) {
+      return callApiViaProxy(credentials, action, extra);
     }
-    throw new Error(e?.message || "Erro ao contatar o servidor");
+    throw e;
   }
 }
 
-// ----- Auth -----
+async function callApiViaProxy(
+  credentials: IPTVCredentials,
+  action?: string,
+  extra?: Record<string, string>
+) {
+  const res = await fetch("/api/iptv", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credentials, action, ...extra }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || `Erro ${res.status}`);
+  }
+  const json = await res.json();
+  if (!json.ok) {
+    throw new Error(json.error || "Erro ao contatar o servidor");
+  }
+  return json.data;
+}
+
 export async function authenticate(
   credentials: IPTVCredentials
 ): Promise<IPTVAuthResponse> {
@@ -61,22 +80,15 @@ export async function authenticate(
   return data as IPTVAuthResponse;
 }
 
-// ----- Categorias -----
 export async function getCategories(
   credentials: IPTVCredentials,
   kind: ContentKind
 ): Promise<IPTVCategory[]> {
-  const action =
-    kind === "live"
-      ? "get_live_categories"
-      : kind === "vod"
-      ? "get_vod_categories"
-      : "get_series_categories";
+  const action = kind === "live" ? "get_live_categories" : kind === "vod" ? "get_vod_categories" : "get_series_categories";
   const data = await callApi(credentials, action);
   return Array.isArray(data) ? data : [];
 }
 
-// ----- Streams -----
 export async function getLiveStreams(
   credentials: IPTVCredentials,
   categoryId?: string
@@ -107,7 +119,6 @@ export async function getSeries(
   return Array.isArray(data) ? data : [];
 }
 
-// ----- Infos -----
 export async function getVodInfo(
   credentials: IPTVCredentials,
   vodId: string
@@ -122,7 +133,6 @@ export async function getSeriesInfo(
   return callApi(credentials, "get_series_info", { series_id: seriesId });
 }
 
-// ----- Construção de URLs de stream -----
 export function buildStreamUrl(
   credentials: IPTVCredentials,
   kind: ContentKind,
