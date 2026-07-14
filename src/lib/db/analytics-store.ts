@@ -3,11 +3,6 @@ import path from "path";
 
 const DB_PATH = path.join("/tmp", "visits.json");
 
-function ensureDir() {
-  const dir = path.dirname(DB_PATH);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-}
-
 export interface VisitRecord {
   id: string;
   ip: string;
@@ -21,7 +16,14 @@ export interface VisitRecord {
   created_at: string;
 }
 
-function readVisits(): VisitRecord[] {
+let inMemoryVisits: VisitRecord[] | null = null;
+
+function ensureDir() {
+  const dir = path.dirname(DB_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+}
+
+function loadFromDisk(): VisitRecord[] {
   try {
     if (!existsSync(DB_PATH)) return [];
     const raw = readFileSync(DB_PATH, "utf-8");
@@ -31,22 +33,35 @@ function readVisits(): VisitRecord[] {
   }
 }
 
-function writeVisits(visits: VisitRecord[]) {
-  ensureDir();
-  writeFileSync(DB_PATH, JSON.stringify(visits), "utf-8");
+function saveToDisk(visits: VisitRecord[]) {
+  try {
+    ensureDir();
+    writeFileSync(DB_PATH, JSON.stringify(visits), "utf-8");
+  } catch {}
+}
+
+function getVisits(): VisitRecord[] {
+  if (inMemoryVisits === null) {
+    inMemoryVisits = loadFromDisk();
+  }
+  return inMemoryVisits;
+}
+
+function persist(visits: VisitRecord[]) {
+  inMemoryVisits = visits;
+  saveToDisk(visits);
 }
 
 export function addVisit(record: Omit<VisitRecord, "created_at">) {
-  const visits = readVisits();
+  const visits = getVisits();
   visits.push({ ...record, created_at: new Date().toISOString() });
-  writeVisits(visits);
+  persist(visits);
 }
 
 export function getAllVisits(): VisitRecord[] {
-  return readVisits();
+  return [...getVisits()];
 }
 
 export function clearVisits() {
-  ensureDir();
-  writeFileSync(DB_PATH, "[]", "utf-8");
+  persist([]);
 }
