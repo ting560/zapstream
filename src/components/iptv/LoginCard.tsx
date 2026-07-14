@@ -101,7 +101,7 @@ export function LoginCard() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-red-500 to-purple-600 mb-4 shadow-lg shadow-red-500/30">
             <Tv className="h-9 w-9 text-white" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">ZapStream</h1>
+          <h1 className="text-3xl font-bold tracking-tight">FilmeStream</h1>
           <p className="text-zinc-400 text-sm mt-1">
             Seu player IPTV na web
           </p>

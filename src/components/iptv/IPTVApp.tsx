@@ -272,7 +272,7 @@ export function IPTVApp() {
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-purple-600 flex items-center justify-center shadow-lg shadow-red-500/20">
               <Tv className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-bold hidden sm:block">ZapStream</span>
+            <span className="text-lg font-bold hidden sm:block">FilmeStream</span>
           </div>
 
           {/* Tabs */}
