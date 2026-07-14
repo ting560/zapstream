@@ -95,9 +95,9 @@ export async function downloadAll(
       writeFileSync(dest, data);
       downloaded++;
       onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "downloading" });
-    } catch {
+    } catch (e: any) {
       errors++;
-      onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "error", error: "Falha ao baixar" });
+      onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "error", error: e?.message || "Falha ao baixar" });
     }
   }
 
