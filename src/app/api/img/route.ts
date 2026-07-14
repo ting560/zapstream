@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { existsSync, readFileSync } from "fs";
+import { imageExists, localPath, getExt, getContentType } from "@/lib/img-downloader";
 import http from "http";
 import https from "https";
 
@@ -13,20 +15,6 @@ function getCache(): Map<string, { data: Buffer; type: string; etag: string }> {
 }
 
 const MAX_CACHE = 500;
-
-function getExtension(url: string): string {
-  const match = url.match(/\.(jpe?g|png|gif|webp|svg|ico|bmp)(\?|$)/i);
-  return match ? match[1].toLowerCase() : "jpg";
-}
-
-function getContentType(ext: string): string {
-  const map: Record<string, string> = {
-    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-    gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
-    ico: "image/x-icon", bmp: "image/bmp",
-  };
-  return map[ext] || "image/jpeg";
-}
 
 function fetchImage(url: string): Promise<{ data: Buffer; type: string }> {
   return new Promise((resolve, reject) => {
@@ -51,15 +39,28 @@ export async function GET(req: NextRequest) {
     const target = url.searchParams.get("url");
     if (!target) return new NextResponse("Missing url", { status: 400 });
 
-    const ext = getExtension(target);
-    const contentType = getContentType(ext);
+    // Check local filesystem first
+    if (imageExists(target)) {
+      const filePath = localPath(target);
+      const data = readFileSync(filePath);
+      const ext = getExt(target);
+      const contentType = getContentType(ext);
+      return new NextResponse(data, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=86400, immutable",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
 
+    const ext = getExt(target);
+    const contentType = getContentType(ext);
     const MEMORY_CACHE = getCache();
 
-  // Check memory cache
     if (MEMORY_CACHE.has(target)) {
       const cached = MEMORY_CACHE.get(target)!;
-      // Re-validate with If-None-Match
       const ifNoneMatch = req.headers.get("if-none-match");
       if (ifNoneMatch === cached.etag) {
         return new NextResponse(null, { status: 304 });
@@ -75,11 +76,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fetch from remote
     const { data, type } = await fetchImage(target);
     const etag = `"${data.length.toString(36)}"`;
 
-    // Store in memory cache
     if (MEMORY_CACHE.size >= MAX_CACHE) {
       const firstKey = MEMORY_CACHE.keys().next().value;
       if (firstKey) MEMORY_CACHE.delete(firstKey);
@@ -96,7 +95,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    // Fallback: redirect to original URL
     const target = new URL(req.url).searchParams.get("url");
     if (target) return NextResponse.redirect(target);
     return new NextResponse("Error", { status: 500 });
