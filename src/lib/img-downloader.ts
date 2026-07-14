@@ -1,6 +1,8 @@
 import { createHash } from "crypto";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "fs";
 import path from "path";
+import https from "https";
+import http from "http";
 
 const COVERS_DIR = path.join("/tmp", "covers");
 
@@ -40,27 +42,25 @@ export function readLocalImage(url: string): Buffer | null {
   return readFileSync(p);
 }
 
-async function fetchImage(url: string): Promise<Buffer> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
-  } catch (e: any) {
-    if (e?.name === "AbortError") throw new Error("Timeout");
-    throw e;
-  } finally {
-    clearTimeout(timeout);
-  }
+function fetchImageNode(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const mod = u.protocol === "https:" ? https : http;
+    const req = mod.get(url, { timeout: 15000 }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+    });
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
+  });
 }
 
 export async function downloadImage(url: string): Promise<void> {
   ensureDir();
   const dest = localPath(url);
   if (existsSync(dest)) return;
-  const data = await fetchImage(url);
+  const data = await fetchImageNode(url);
   writeFileSync(dest, data);
 }
 
@@ -91,13 +91,13 @@ export async function downloadAll(
       continue;
     }
     try {
-      const data = await fetchImage(url);
+      const data = await fetchImageNode(url);
       writeFileSync(dest, data);
       downloaded++;
       onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "downloading" });
     } catch (e: any) {
       errors++;
-      const msg = e?.cause?.message || e?.message || JSON.stringify(e);
+      const msg = e?.message || JSON.stringify(e);
       onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "error", error: msg });
     }
   }
