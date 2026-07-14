@@ -1,36 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-interface Visit {
-  id: string;
-  ip: string;
-  city: string;
-  region: string;
-  country: string;
-  page: string;
-  userAgent: string;
-  referrer: string;
-  timestamp: string;
-  serverName: string;
-}
-
-function getFilePath() {
-  if (process.env.VERCEL) {
-    return path.join("/tmp", "analytics.json");
-  }
-  return path.join(process.cwd(), "db", "analytics.json");
-}
-
-async function readVisits(): Promise<Visit[]> {
-  const filePath = getFilePath();
-  try {
-    const data = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
+import { readVisits, clearVisits } from "@/lib/db/analytics-store";
 
 function getWeekNumber(d: Date): number {
   const startOfYear = new Date(d.getFullYear(), 0, 1);
@@ -61,7 +30,6 @@ export async function GET(req: NextRequest) {
       filtered = visits.filter((v) => new Date(v.timestamp) >= startOfMonth);
     }
 
-    // Agregações
     const totalVisits = filtered.length;
     const uniqueIPs = new Set(filtered.map((v) => v.ip)).size;
 
@@ -134,11 +102,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE() {
-  const filePath = getFilePath();
-  try {
-    await fs.writeFile(filePath, "[]", "utf-8");
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+  await clearVisits();
+  return NextResponse.json({ ok: true });
 }

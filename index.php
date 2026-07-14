@@ -145,7 +145,7 @@ html,body{height:100%;background:#0a0a0a;color:#fff;font-family:Arial,sans-serif
 #busca{width:calc(100% - 16px);margin:8px;padding:8px 10px;border:1px solid #333;border-radius:6px;background:#1a1a1a;color:#fff;font-size:13px;outline:none}
 #busca:focus{border-color:#00f3ff}
 .cat{padding:6px 12px 3px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
-.sidebar a{display:block;padding:5px 12px;font-size:12px;color:#ccc;text-decoration:none;border-left:3px solid transparent;transition:.15s}
+.sidebar a{display:block;padding:5px 15px;font-size:19px;color:#ccc;text-decoration:none;border-left:3px solid transparent;transition:.15s}
 .sidebar a:hover,.sidebar a.ativo{background:#1a1a1a;color:#fff;border-left-color:#00f3ff}
 .escondido{display:none!important}
 .content{flex:1;display:flex;flex-direction:column;background:#000}
