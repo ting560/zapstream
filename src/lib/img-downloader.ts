@@ -4,7 +4,7 @@ import path from "path";
 import http from "http";
 import https from "https";
 
-const COVERS_DIR = path.join(process.cwd(), "public", "covers");
+const COVERS_DIR = path.join("/tmp", "covers");
 
 function ensureDir() {
   if (!existsSync(COVERS_DIR)) mkdirSync(COVERS_DIR, { recursive: true });
@@ -32,12 +32,14 @@ export function localPath(url: string): string {
   return path.join(COVERS_DIR, `${hashUrl(url)}.${getExt(url)}`);
 }
 
-export function localUrl(url: string): string {
-  return `/covers/${hashUrl(url)}.${getExt(url)}`;
-}
-
 export function imageExists(url: string): boolean {
   return existsSync(localPath(url));
+}
+
+export function readLocalImage(url: string): Buffer | null {
+  const p = localPath(url);
+  if (!existsSync(p)) return null;
+  return readFileSync(p);
 }
 
 function fetchImage(url: string): Promise<Buffer> {
@@ -54,13 +56,12 @@ function fetchImage(url: string): Promise<Buffer> {
   });
 }
 
-export async function downloadImage(url: string): Promise<string> {
+export async function downloadImage(url: string): Promise<void> {
   ensureDir();
   const dest = localPath(url);
-  if (existsSync(dest)) return localUrl(url);
+  if (existsSync(dest)) return;
   const data = await fetchImage(url);
   writeFileSync(dest, data);
-  return localUrl(url);
 }
 
 export interface DownloadProgress {

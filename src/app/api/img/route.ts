@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { existsSync, readFileSync } from "fs";
-import { imageExists, localPath, getExt, getContentType } from "@/lib/img-downloader";
+import { readLocalImage, imageExists, getExt, getContentType } from "@/lib/img-downloader";
 import http from "http";
 import https from "https";
 
@@ -39,20 +38,21 @@ export async function GET(req: NextRequest) {
     const target = url.searchParams.get("url");
     if (!target) return new NextResponse("Missing url", { status: 400 });
 
-    // Check local filesystem first
+    // Check local /tmp/covers/ first
     if (imageExists(target)) {
-      const filePath = localPath(target);
-      const data = readFileSync(filePath);
-      const ext = getExt(target);
-      const contentType = getContentType(ext);
-      return new NextResponse(data, {
-        status: 200,
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=86400, immutable",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      const data = readLocalImage(target);
+      if (data) {
+        const ext = getExt(target);
+        const contentType = getContentType(ext);
+        return new NextResponse(data, {
+          status: 200,
+          headers: {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=86400, immutable",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
     }
 
     const ext = getExt(target);
