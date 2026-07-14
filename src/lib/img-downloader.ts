@@ -1,8 +1,6 @@
 import { createHash } from "crypto";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "fs";
 import path from "path";
-import http from "http";
-import https from "https";
 
 const COVERS_DIR = path.join("/tmp", "covers");
 
@@ -42,18 +40,17 @@ export function readLocalImage(url: string): Buffer | null {
   return readFileSync(p);
 }
 
-function fetchImage(url: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const mod = u.protocol === "https:" ? https : http;
-    const req = mod.get(url, { timeout: 15000 }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer) => chunks.push(chunk));
-      res.on("end", () => resolve(Buffer.concat(chunks)));
-    });
-    req.on("error", reject);
-    req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
-  });
+async function fetchImage(url: string): Promise<Buffer> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const ab = await res.arrayBuffer();
+    return Buffer.from(ab);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function downloadImage(url: string): Promise<void> {

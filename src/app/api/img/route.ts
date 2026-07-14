@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readLocalImage, imageExists, getExt, getContentType } from "@/lib/img-downloader";
-import http from "http";
-import https from "https";
 
 function getCache(): Map<string, { data: Buffer; type: string; etag: string }> {
   if (typeof globalThis !== "undefined") {
@@ -15,21 +13,18 @@ function getCache(): Map<string, { data: Buffer; type: string; etag: string }> {
 
 const MAX_CACHE = 500;
 
-function fetchImage(url: string): Promise<{ data: Buffer; type: string }> {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const mod = u.protocol === "https:" ? https : http;
-    const req = mod.get(url, { timeout: 15000 }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer) => chunks.push(chunk));
-      res.on("end", () => {
-        const ct = res.headers["content-type"] || "";
-        resolve({ data: Buffer.concat(chunks), type: ct });
-      });
-    });
-    req.on("error", reject);
-    req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
-  });
+async function fetchImage(url: string): Promise<{ data: Buffer; type: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const ct = res.headers.get("content-type") || "";
+    const ab = await res.arrayBuffer();
+    return { data: Buffer.from(ab), type: ct };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function GET(req: NextRequest) {
