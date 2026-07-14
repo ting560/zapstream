@@ -48,6 +48,9 @@ async function fetchImage(url: string): Promise<Buffer> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const ab = await res.arrayBuffer();
     return Buffer.from(ab);
+  } catch (e: any) {
+    if (e?.name === "AbortError") throw new Error("Timeout");
+    throw e;
   } finally {
     clearTimeout(timeout);
   }
@@ -94,7 +97,8 @@ export async function downloadAll(
       onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "downloading" });
     } catch (e: any) {
       errors++;
-      onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "error", error: e?.message || "Falha ao baixar" });
+      const msg = e?.cause?.message || e?.message || JSON.stringify(e);
+      onProgress?.({ total: unique.length, completed: i + 1, current: url, status: "error", error: msg });
     }
   }
 
