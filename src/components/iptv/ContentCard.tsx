@@ -56,7 +56,7 @@ export function ContentCard({
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
-            {imgSrc && (
+            {imgSrc ? (
               <>
                 {!imgLoaded && (
                   <div className="absolute inset-0 flex items-center justify-center">
