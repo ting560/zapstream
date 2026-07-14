@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { PlayItem, IPTVCredentials } from "@/lib/iptv-types";
 import { buildStreamUrl } from "@/lib/iptv-client";
+import { cachedImg } from "@/lib/img-cache";
 
 interface PlayerModalProps {
   item: PlayItem | null;
@@ -215,7 +216,7 @@ export function PlayerModal({ item, credentials, onClose }: PlayerModalProps) {
         <div className="px-4 py-3 bg-zinc-900 border-t border-white/10 flex items-center gap-3">
           {item.logo && (
             <img
-              src={item.logo}
+              src={cachedImg(item.logo)}
               alt=""
               className="h-8 w-8 rounded object-contain bg-white/5"
               onError={(e) => {

@@ -42,6 +42,7 @@ import type {
 import { ContentCard } from "./ContentCard";
 import { PlayerModal } from "./PlayerModal";
 import { PinModal } from "./PinModal";
+import { cachedImg } from "@/lib/img-cache";
 import {
   Dialog,
   DialogContent,
@@ -652,7 +653,7 @@ export function IPTVApp() {
             <DialogTitle className="flex items-center gap-2">
               {seriesDialog.series?.logo && (
                 <img
-                  src={seriesDialog.series.logo}
+                  src={cachedImg(seriesDialog.series.logo)}
                   alt=""
                   className="h-10 w-8 object-cover rounded"
                 />

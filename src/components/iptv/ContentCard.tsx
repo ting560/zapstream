@@ -5,6 +5,7 @@ import { Tv, Film, Star, Heart, Play, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentKind, PlayItem } from "@/lib/iptv-types";
 import { useIPTVStore } from "@/lib/iptv-store";
+import { cachedImg } from "@/lib/img-cache";
 
 interface ContentCardProps {
   id: number | string;
@@ -33,6 +34,7 @@ export function ContentCard({
   const Icon = kind === "live" ? Tv : kind === "vod" ? Film : Star;
 
   const showImage = logo && !imgError;
+  const imgSrc = cachedImg(showImage ? logo : undefined);
 
   return (
     <div
@@ -54,15 +56,15 @@ export function ContentCard({
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
-        {showImage ? (
-          <>
-            {!imgLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
-              </div>
-            )}
-            <img
-              src={logo}
+            {imgSrc && (
+              <>
+                {!imgLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+                  </div>
+                )}
+                <img
+                  src={imgSrc}
               alt={name}
               loading="lazy"
               onLoad={() => setImgLoaded(true)}
