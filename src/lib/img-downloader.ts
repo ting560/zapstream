@@ -42,11 +42,20 @@ export function readLocalImage(url: string): Buffer | null {
   return readFileSync(p);
 }
 
-function fetchImageNode(url: string): Promise<Buffer> {
+function fetchImageNode(url: string, maxRedirects = 5): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const mod = u.protocol === "https:" ? https : http;
     const req = mod.get(url, { timeout: 15000 }, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && maxRedirects > 0) {
+        const redirectUrl = new URL(res.headers.location, url).toString();
+        resolve(fetchImageNode(redirectUrl, maxRedirects - 1));
+        return;
+      }
+      if (res.statusCode && res.statusCode >= 400) {
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
       const chunks: Buffer[] = [];
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => resolve(Buffer.concat(chunks)));
