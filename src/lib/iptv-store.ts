@@ -64,7 +64,7 @@ export const useIPTVStore = create<IPTVState>()(
       isAuthenticated: false,
       setAuthenticated: (v) => set({ isAuthenticated: v }),
 
-      activeTab: "live",
+      activeTab: "vod",
       setActiveTab: (t) =>
         set({ activeTab: t, activeCategory: "all", search: "" }),
 

@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   List,
   ChevronRight,
+  Play,
   Download,
   RefreshCw,
   CheckCircle2,
@@ -32,6 +33,7 @@ import {
   getLiveStreams,
   getVodStreams,
   getSeries,
+  getVodInfo,
   getSeriesInfo,
 } from "@/lib/iptv-client";
 import type {
@@ -42,6 +44,7 @@ import type {
   IPTVVodStream,
   IPTVSeries,
   IPTVSeriesInfo,
+  IPTVVodInfo,
 } from "@/lib/iptv-types";
 import { ContentCard } from "./ContentCard";
 import { PlayerModal } from "./PlayerModal";
@@ -90,6 +93,14 @@ export function IPTVApp() {
     open: boolean;
     series?: IPTVSeries;
     info?: IPTVSeriesInfo;
+    loading: boolean;
+  }>({ open: false, loading: false });
+
+  // VOD detail dialog
+  const [vodDialog, setVodDialog] = useState<{
+    open: boolean;
+    item?: PlayItem;
+    info?: IPTVVodInfo;
     loading: boolean;
   }>({ open: false, loading: false });
 
@@ -206,6 +217,22 @@ export function IPTVApp() {
           })
           .catch((e) => {
             setSeriesDialog((s) => ({
+              ...s,
+              loading: false,
+              open: false,
+            }));
+            setError(e.message);
+          });
+        return;
+      }
+      if (item.kind === "vod") {
+        setVodDialog({ open: true, item, loading: true });
+        getVodInfo(credentials, String(item.id))
+          .then((info) => {
+            setVodDialog((s) => ({ ...s, info, loading: false }));
+          })
+          .catch((e) => {
+            setVodDialog((s) => ({
               ...s,
               loading: false,
               open: false,
@@ -780,6 +807,99 @@ export function IPTVApp() {
         onUnlock={handlePinUnlock}
         onClose={() => { setShowPinModal(false); setPendingPlay(null); }}
       />
+
+      {/* Dialog de informações para filmes */}
+      <Dialog
+        open={vodDialog.open}
+        onOpenChange={(v) =>
+          !v && setVodDialog({ open: false, loading: false })
+        }
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {vodDialog.item?.logo && (
+                <img
+                  src={cachedImg(vodDialog.item.logo)}
+                  alt=""
+                  className="h-10 w-8 object-cover rounded"
+                />
+              )}
+              <span className="truncate">{vodDialog.item?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {vodDialog.loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+            </div>
+          ) : vodDialog.info ? (
+            <div className="overflow-hidden flex flex-col gap-4">
+              {vodDialog.info.info?.plot && (
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  {vodDialog.info.info.plot}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {vodDialog.info.info?.genre && (
+                  <div>
+                    <span className="text-zinc-500">Gênero:</span>{" "}
+                    <span className="text-zinc-300">{vodDialog.info.info.genre}</span>
+                  </div>
+                )}
+                {vodDialog.info.info?.duration && (
+                  <div>
+                    <span className="text-zinc-500">Duração:</span>{" "}
+                    <span className="text-zinc-300">{vodDialog.info.info.duration}</span>
+                  </div>
+                )}
+                {vodDialog.info.info?.releasedate && (
+                  <div>
+                    <span className="text-zinc-500">Lançamento:</span>{" "}
+                    <span className="text-zinc-300">{vodDialog.info.info.releasedate}</span>
+                  </div>
+                )}
+                {vodDialog.info.info?.rating && (
+                  <div>
+                    <span className="text-zinc-500">Rating:</span>{" "}
+                    <span className="text-yellow-400 font-semibold">{vodDialog.info.info.rating}</span>
+                  </div>
+                )}
+                {vodDialog.info.info?.director && (
+                  <div>
+                    <span className="text-zinc-500">Diretor:</span>{" "}
+                    <span className="text-zinc-300">{vodDialog.info.info.director}</span>
+                  </div>
+                )}
+                {vodDialog.info.info?.cast && (
+                  <div>
+                    <span className="text-zinc-500">Elenco:</span>{" "}
+                    <span className="text-zinc-300">{vodDialog.info.info.cast}</span>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={() => {
+                  if (vodDialog.item) {
+                    setPlay(vodDialog.item);
+                  }
+                  setVodDialog({ open: false, loading: false });
+                }}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Assistir
+              </Button>
+            </div>
+          ) : (
+            <p className="text-zinc-500 py-8 text-center">
+              Não foi possível carregar informações do filme.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de episódios para séries */}
       <Dialog
