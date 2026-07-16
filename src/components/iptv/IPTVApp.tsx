@@ -147,38 +147,65 @@ export function IPTVApp() {
   useEffect(() => {
     setLoadingCanais(true);
 
-    // Tenta carregar logos do cache de canais ao vivo
-    let logoMap: Record<string, string> = {};
-    try {
-      const cached = localStorage.getItem("items_live_all");
-      if (cached) {
-        const liveItems = JSON.parse(cached);
-        if (Array.isArray(liveItems)) {
-          for (const item of liveItems) {
+    async function buildLogoMap(): Promise<Record<string, string>> {
+      const map: Record<string, string> = {};
+      // Tenta de várias fontes
+      const sources = [
+        () => { const c = localStorage.getItem("items_live_all"); return c ? JSON.parse(c) : null; },
+        async () => { const r = await fetch("/data/iptv-data.json").catch(() => {}); if (r?.ok) { const d = await r.json(); return d.liveStreams; } },
+        () => null,
+      ];
+      for (const src of sources) {
+        const items = await src();
+        if (Array.isArray(items)) {
+          for (const item of items) {
             const name = (item.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (item.stream_icon) logoMap[name] = item.stream_icon;
+            if (item.stream_icon) map[name] = item.stream_icon;
           }
+          if (Object.keys(map).length > 0) break;
         }
       }
-    } catch {}
+      return map;
+    }
 
-    fetch("/canais_cache.json")
-      .then((r) => r.json())
-      .then((data: any[]) => {
-        // Tentar casar logos por nome
-        const enriched = data.map((ch: any) => {
-          const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-          const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-          const logo = logoMap[chName] || logoMap[chId] || "";
-          return { ...ch, logo };
-        });
-        setCanaisChannels(enriched);
-        const cats = [...new Set(data.map((c) => c.cat))] as string[];
-        setCanaisCats(cats);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingCanais(false));
+    buildLogoMap().then((logoMap) => {
+      fetch("/canais_cache.json")
+        .then((r) => r.json())
+        .then((data: any[]) => {
+          const enriched = data.map((ch: any) => {
+            const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            const logo = logoMap[chName] || logoMap[chId] || "";
+            return { ...ch, logo };
+          });
+          setCanaisChannels(enriched);
+          const cats = [...new Set(data.map((c) => c.cat))] as string[];
+          setCanaisCats(cats);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingCanais(false));
+    });
   }, []);
+
+  // Reativo: quando items carregam (ao vivo), atualiza logos dos canais
+  useEffect(() => {
+    if (!items.length) return;
+    const logoMap: Record<string, string> = {};
+    for (const item of items) {
+      const name = (item.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (item.stream_icon) logoMap[name] = item.stream_icon;
+    }
+    if (Object.keys(logoMap).length === 0) return;
+    setCanaisChannels((prev: any[]) =>
+      prev.map((ch: any) => {
+        if (ch.logo) return ch;
+        const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const logo = logoMap[chName] || logoMap[chId] || "";
+        return logo ? { ...ch, logo } : ch;
+      })
+    );
+  }, [items]);
 
   const handlePinUnlock = () => {
     setPinVerified(true);
