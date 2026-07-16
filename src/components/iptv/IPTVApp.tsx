@@ -143,8 +143,19 @@ export function IPTVApp() {
       .catch(() => {});
   }, []);
 
-  // Carregar canais do JSON
+  // Carregar canais do JSON (com cache localStorage)
   useEffect(() => {
+    const cacheKey = "canais_cache";
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        setCanaisChannels(data);
+        setCanaisCats([...new Set(data.map((c: any) => c.cat))] as string[]);
+        setLoadingCanais(false);
+        return;
+      } catch {}
+    }
     setLoadingCanais(true);
     fetch("/canais_cache.json")
       .then((r) => r.json())
@@ -152,6 +163,7 @@ export function IPTVApp() {
         setCanaisChannels(data);
         const cats = [...new Set(data.map((c) => c.cat))] as string[];
         setCanaisCats(cats);
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
       })
       .catch(() => {})
       .finally(() => setLoadingCanais(false));

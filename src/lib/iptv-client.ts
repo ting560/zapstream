@@ -12,8 +12,8 @@ import type {
   ContentKind,
 } from "./iptv-types";
 
-// Cache local para respostas da API (10 min)
-const CACHE_TTL = 10 * 60 * 1000;
+// Cache local para respostas da API (24h)
+const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function cacheKey(credentials: IPTVCredentials, action?: string, extra?: Record<string, string>) {
   return `iptv:${credentials.server}:${credentials.username}:${action || ""}:${JSON.stringify(extra || {})}`;
@@ -41,7 +41,7 @@ async function callApi(
   extra?: Record<string, string>
 ) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
   const base = credentials.server.replace(/\/$/, "");
   const url = new URL(base + "/player_api.php");

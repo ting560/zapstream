@@ -3,6 +3,14 @@ import type { IPTVCredentials } from "@/lib/iptv-types";
 import http from "http";
 import https from "https";
 
+// Cache server-side para evitar chamadas repetidas à API externa
+const proxyCache = new Map<string, { data: any; expiry: number }>();
+const PROXY_CACHE_TTL = 30 * 60 * 1000; // 30 min
+
+function getProxyCacheKey(credentials: IPTVCredentials, params: Record<string, string | undefined>): string {
+  return `${credentials.server}|${credentials.username}|${params.action || ""}|${params.category_id || ""}`;
+}
+
 function httpRequest(url: string): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -18,7 +26,7 @@ function httpRequest(url: string): Promise<{ status: number; body: string }> {
           Referer: u.origin + "/",
           "Cache-Control": "no-cache",
         },
-        timeout: 20000,
+        timeout: 8000,
       },
       (res) => {
         let data = "";
@@ -85,14 +93,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Credenciais incompletas" }, { status: 400 });
   }
 
-  const result = await callXtreamAPI(body.credentials, {
+  const params = {
     action: body.action,
     category_id: body.category_id,
     stream_id: body.stream_id,
     series_id: body.series_id,
     vod_id: body.vod_id,
-  });
+  };
 
+  // Verificar cache
+  const cacheKey = getProxyCacheKey(body.credentials, params);
+  const cached = proxyCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiry) {
+    return NextResponse.json({ ok: true, data: cached.data }, {
+      headers: { "X-Cache": "HIT" },
+    });
+  }
+
+  // Se for info de vod/serie (detalhes), não cachear no servidor
+  if (body.vod_id || body.series_id || body.stream_id) {
+    const result = await callXtreamAPI(body.credentials, params);
+    if (!result.ok) return NextResponse.json(result, { status: 502 });
+    return NextResponse.json(result);
+  }
+
+  const result = await callXtreamAPI(body.credentials, params);
   if (!result.ok) return NextResponse.json(result, { status: 502 });
-  return NextResponse.json(result);
+
+  proxyCache.set(cacheKey, { data: result.data, expiry: Date.now() + PROXY_CACHE_TTL });
+  return NextResponse.json({ ok: true, data: result.data }, {
+    headers: { "X-Cache": "MISS" },
+  });
 }
