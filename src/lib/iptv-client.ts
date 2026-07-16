@@ -12,36 +12,13 @@ import type {
   ContentKind,
 } from "./iptv-types";
 
-// Cache local para respostas da API (24h)
-const CACHE_TTL = 24 * 60 * 60 * 1000;
-
-function cacheKey(credentials: IPTVCredentials, action?: string, extra?: Record<string, string>) {
-  return `iptv:${credentials.server}:${credentials.username}:${action || ""}:${JSON.stringify(extra || {})}`;
-}
-
-function cacheGet<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const { data, expiry } = JSON.parse(raw);
-    if (Date.now() > expiry) { localStorage.removeItem(key); return null; }
-    return data as T;
-  } catch { return null; }
-}
-
-function cacheSet(key: string, data: any) {
-  try {
-    localStorage.setItem(key, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL }));
-  } catch {}
-}
-
 async function callApi(
   credentials: IPTVCredentials,
   action?: string,
   extra?: Record<string, string>
 ) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   const base = credentials.server.replace(/\/$/, "");
   const url = new URL(base + "/player_api.php");
@@ -102,55 +79,38 @@ export async function getCategories(
   kind: ContentKind
 ): Promise<IPTVCategory[]> {
   const action = kind === "live" ? "get_live_categories" : kind === "vod" ? "get_vod_categories" : "get_series_categories";
-  const key = cacheKey(credentials, action);
-  const cached = cacheGet<IPTVCategory[]>(key);
-  if (cached) return cached;
   const data = await callApi(credentials, action);
-  const result = Array.isArray(data) ? data : [];
-  cacheSet(key, result);
-  return result;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getLiveStreams(
   credentials: IPTVCredentials,
   categoryId?: string
 ): Promise<IPTVLiveStream[]> {
-  const extra = categoryId && categoryId !== "all" ? { category_id: categoryId } : {};
-  const key = cacheKey(credentials, "get_live_streams", extra);
-  const cached = cacheGet<IPTVLiveStream[]>(key);
-  if (cached) return cached;
-  const data = await callApi(credentials, "get_live_streams", extra);
-  const result = Array.isArray(data) ? data : [];
-  cacheSet(key, result);
-  return result;
+  const data = await callApi(credentials, "get_live_streams", {
+    ...(categoryId && categoryId !== "all" ? { category_id: categoryId } : {}),
+  });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getVodStreams(
   credentials: IPTVCredentials,
   categoryId?: string
 ): Promise<IPTVVodStream[]> {
-  const extra = categoryId && categoryId !== "all" ? { category_id: categoryId } : {};
-  const key = cacheKey(credentials, "get_vod_streams", extra);
-  const cached = cacheGet<IPTVVodStream[]>(key);
-  if (cached) return cached;
-  const data = await callApi(credentials, "get_vod_streams", extra);
-  const result = Array.isArray(data) ? data : [];
-  cacheSet(key, result);
-  return result;
+  const data = await callApi(credentials, "get_vod_streams", {
+    ...(categoryId && categoryId !== "all" ? { category_id: categoryId } : {}),
+  });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getSeries(
   credentials: IPTVCredentials,
   categoryId?: string
 ): Promise<IPTVSeries[]> {
-  const extra = categoryId && categoryId !== "all" ? { category_id: categoryId } : {};
-  const key = cacheKey(credentials, "get_series", extra);
-  const cached = cacheGet<IPTVSeries[]>(key);
-  if (cached) return cached;
-  const data = await callApi(credentials, "get_series", extra);
-  const result = Array.isArray(data) ? data : [];
-  cacheSet(key, result);
-  return result;
+  const data = await callApi(credentials, "get_series", {
+    ...(categoryId && categoryId !== "all" ? { category_id: categoryId } : {}),
+  });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getVodInfo(
