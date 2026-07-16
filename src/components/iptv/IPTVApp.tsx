@@ -257,13 +257,11 @@ export function IPTVApp() {
           .then((info) => {
             setVodDialog((s) => ({ ...s, info, loading: false }));
           })
-          .catch((e) => {
+          .catch(() => {
             setVodDialog((s) => ({
               ...s,
               loading: false,
-              open: false,
             }));
-            setError(e.message);
           });
         return;
       }
@@ -414,6 +412,7 @@ export function IPTVApp() {
                 onClick={() => {
                   setActiveTab(t.kind);
                   setShowFavorites(false);
+                  setShowCanais(false);
                 }}
                 className={cn(
                   "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
@@ -444,7 +443,7 @@ export function IPTVApp() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowFavorites(true)}
+              onClick={() => { setShowFavorites(true); setShowCanais(false); }}
               className={cn(
                 "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
                 showFavorites ? "bg-zinc-800 text-white" : ""
@@ -1005,52 +1004,60 @@ export function IPTVApp() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
             </div>
-          ) : vodDialog.info ? (
+          ) : (
             <div className="overflow-hidden flex flex-col gap-4">
-              {vodDialog.info.info?.plot && (
+              {vodDialog.info?.info?.plot && (
                 <p className="text-sm text-zinc-400 leading-relaxed">
                   {vodDialog.info.info.plot}
                 </p>
               )}
 
-              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                {vodDialog.info.info?.genre && (
-                  <div>
-                    <span className="text-zinc-500">Gênero:</span>{" "}
-                    <span className="text-zinc-300">{vodDialog.info.info.genre}</span>
-                  </div>
-                )}
-                {vodDialog.info.info?.duration && (
-                  <div>
-                    <span className="text-zinc-500">Duração:</span>{" "}
-                    <span className="text-zinc-300">{vodDialog.info.info.duration}</span>
-                  </div>
-                )}
-                {vodDialog.info.info?.releasedate && (
-                  <div>
-                    <span className="text-zinc-500">Lançamento:</span>{" "}
-                    <span className="text-zinc-300">{vodDialog.info.info.releasedate}</span>
-                  </div>
-                )}
-                {vodDialog.info.info?.rating && (
-                  <div>
-                    <span className="text-zinc-500">Rating:</span>{" "}
-                    <span className="text-yellow-400 font-semibold">{vodDialog.info.info.rating}</span>
-                  </div>
-                )}
-                {vodDialog.info.info?.director && (
-                  <div>
-                    <span className="text-zinc-500">Diretor:</span>{" "}
-                    <span className="text-zinc-300">{vodDialog.info.info.director}</span>
-                  </div>
-                )}
-                {vodDialog.info.info?.cast && (
-                  <div>
-                    <span className="text-zinc-500">Elenco:</span>{" "}
-                    <span className="text-zinc-300">{vodDialog.info.info.cast}</span>
-                  </div>
-                )}
-              </div>
+              {vodDialog.info?.info && (
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                  {vodDialog.info.info.genre && (
+                    <div>
+                      <span className="text-zinc-500">Gênero:</span>{" "}
+                      <span className="text-zinc-300">{vodDialog.info.info.genre}</span>
+                    </div>
+                  )}
+                  {vodDialog.info.info.duration && (
+                    <div>
+                      <span className="text-zinc-500">Duração:</span>{" "}
+                      <span className="text-zinc-300">{vodDialog.info.info.duration}</span>
+                    </div>
+                  )}
+                  {vodDialog.info.info.releasedate && (
+                    <div>
+                      <span className="text-zinc-500">Lançamento:</span>{" "}
+                      <span className="text-zinc-300">{vodDialog.info.info.releasedate}</span>
+                    </div>
+                  )}
+                  {vodDialog.info.info.rating && (
+                    <div>
+                      <span className="text-zinc-500">Rating:</span>{" "}
+                      <span className="text-yellow-400 font-semibold">{vodDialog.info.info.rating}</span>
+                    </div>
+                  )}
+                  {vodDialog.info.info.director && (
+                    <div>
+                      <span className="text-zinc-500">Diretor:</span>{" "}
+                      <span className="text-zinc-300">{vodDialog.info.info.director}</span>
+                    </div>
+                  )}
+                  {vodDialog.info.info.cast && (
+                    <div>
+                      <span className="text-zinc-500">Elenco:</span>{" "}
+                      <span className="text-zinc-300">{vodDialog.info.info.cast}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!vodDialog.info && (
+                <p className="text-sm text-zinc-500 text-center py-2">
+                  Informações indisponíveis.
+                </p>
+              )}
 
               <Button
                 onClick={() => {
@@ -1065,10 +1072,6 @@ export function IPTVApp() {
                 Assistir
               </Button>
             </div>
-          ) : (
-            <p className="text-zinc-500 py-8 text-center">
-              Não foi possível carregar informações do filme.
-            </p>
           )}
         </DialogContent>
       </Dialog>
