@@ -166,7 +166,15 @@ export function IPTVApp() {
     }
   };
 
-  // Carregar categorias quando muda o tab
+  // Cache helpers
+  const cacheGet = (key: string) => {
+    try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch { return null; }
+  };
+  const cacheSet = (key: string, data: any) => {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+  };
+
+  // Carregar categorias quando muda o tab (com cache)
   useEffect(() => {
     let cancelled = false;
     setShowFavorites(false);
@@ -176,9 +184,20 @@ export function IPTVApp() {
     setItems([]);
     setError("");
     setLoadingCats(true);
+
+    const cacheKey = `cat_${activeTab}`;
+    const cached = cacheGet(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      setCategories(cached);
+      setLoadingCats(false);
+    }
+
     getCategories(credentials, activeTab)
       .then((cats) => {
-        if (!cancelled) setCategories(cats);
+        if (!cancelled) {
+          setCategories(cats);
+          cacheSet(cacheKey, cats);
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e.message);
@@ -191,13 +210,11 @@ export function IPTVApp() {
     };
   }, [activeTab, credentials, setActiveCategory]);
 
-  // Carregar items quando muda categoria (ou tab)
+  // Carregar items quando muda categoria (ou tab) com cache
   useEffect(() => {
     if (showFavorites) return;
     let cancelled = false;
     setError("");
-    setLoadingItems(true);
-    setItems([]);
 
     const loader =
       activeTab === "live"
@@ -206,16 +223,41 @@ export function IPTVApp() {
         ? getVodStreams
         : getSeries;
 
-    loader(credentials, activeCategory)
-      .then((data) => {
-        if (!cancelled) setItems(data);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingItems(false);
-      });
+    const cacheKey = `items_${activeTab}_${activeCategory}`;
+    const cached = cacheGet(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      setItems(cached);
+      setLoadingItems(false);
+      // Revalidate in background
+      loader(credentials, activeCategory)
+        .then((data) => {
+          if (!cancelled) {
+            setItems(data);
+            cacheSet(cacheKey, data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setLoadingItems(false);
+        });
+    } else {
+      setLoadingItems(true);
+      setItems([]);
+      loader(credentials, activeCategory)
+        .then((data) => {
+          if (!cancelled) {
+            setItems(data);
+            cacheSet(cacheKey, data);
+          }
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e.message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingItems(false);
+        });
+    }
+
     return () => {
       cancelled = true;
     };
