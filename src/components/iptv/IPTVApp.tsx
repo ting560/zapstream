@@ -20,6 +20,7 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ import type {
 } from "@/lib/iptv-types";
 import { ContentCard } from "./ContentCard";
 import { PlayerModal } from "./PlayerModal";
+import { CanaisPlayerModal } from "./CanaisPlayerModal";
 import { PinModal } from "./PinModal";
 import { cachedImg } from "@/lib/img-cache";
 import {
@@ -79,8 +81,17 @@ export function IPTVApp() {
   } = useIPTVStore();
 
   const [showFavorites, setShowFavorites] = useState(false);
+  const [showCanais, setShowCanais] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Canais (embed)
+  const [canaisChannels, setCanaisChannels] = useState<any[]>([]);
+  const [canaisCats, setCanaisCats] = useState<string[]>([]);
+  const [canaisActiveCat, setCanaisActiveCat] = useState("all");
+  const [canaisSearch, setCanaisSearch] = useState("");
+  const [canaisPlayer, setCanaisPlayer] = useState<{ nome: string; id: string } | null>(null);
+  const [loadingCanais, setLoadingCanais] = useState(false);
 
   const [categories, setCategories] = useState<IPTVCategory[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -132,6 +143,20 @@ export function IPTVApp() {
       .catch(() => {});
   }, []);
 
+  // Carregar canais do JSON
+  useEffect(() => {
+    setLoadingCanais(true);
+    fetch("/canais_cache.json")
+      .then((r) => r.json())
+      .then((data: any[]) => {
+        setCanaisChannels(data);
+        const cats = [...new Set(data.map((c) => c.cat))] as string[];
+        setCanaisCats(cats);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCanais(false));
+  }, []);
+
   const handlePinUnlock = () => {
     setPinVerified(true);
     setShowPinModal(false);
@@ -145,6 +170,7 @@ export function IPTVApp() {
   useEffect(() => {
     let cancelled = false;
     setShowFavorites(false);
+    setShowCanais(false);
     setActiveCategory("all");
     setCategories([]);
     setItems([]);
@@ -352,6 +378,19 @@ export function IPTVApp() {
 
   const totalCount = showFavorites ? favItems.length : filteredItems.length;
 
+  // Canais filtrados
+  const canaisFiltrados = useMemo(() => {
+    let list = canaisChannels;
+    if (canaisActiveCat !== "all") {
+      list = list.filter((c) => c.cat === canaisActiveCat);
+    }
+    if (canaisSearch.trim()) {
+      const q = canaisSearch.toLowerCase();
+      list = list.filter((c) => c.nome.toLowerCase().includes(q));
+    }
+    return list;
+  }, [canaisChannels, canaisActiveCat, canaisSearch]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
       {/* Header */}
@@ -390,6 +429,21 @@ export function IPTVApp() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {
+                setShowCanais(true);
+                setShowFavorites(false);
+              }}
+              className={cn(
+                "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                showCanais ? "bg-zinc-800 text-white" : ""
+              )}
+            >
+              <Radio className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Canais</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowFavorites(true)}
               className={cn(
                 "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
@@ -413,12 +467,21 @@ export function IPTVApp() {
           <div className="flex-1 max-w-md ml-auto">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar..."
-                className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
-              />
+              {showCanais ? (
+                <Input
+                  value={canaisSearch}
+                  onChange={(e) => setCanaisSearch(e.target.value)}
+                  placeholder="Buscar canais..."
+                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
+                />
+              ) : (
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar..."
+                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
+                />
+              )}
             </div>
           </div>
 
@@ -535,71 +598,116 @@ export function IPTVApp() {
 
           <ScrollArea className="h-[calc(100vh-57px)] lg:h-[calc(100vh-57px)]">
             <div className="p-3">
-              <button
-                onClick={() => {
-                  setActiveCategory("all");
-                  setShowFavorites(false);
-                  setShowMobileSidebar(false);
-                }}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors",
-                  activeCategory === "all" && !showFavorites
-                    ? "bg-red-600 text-white"
-                    : "text-zinc-300 hover:bg-zinc-800"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                Todas
-              </button>
+              {showCanais ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setCanaisActiveCat("all");
+                      setShowMobileSidebar(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors",
+                      canaisActiveCat === "all"
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-300 hover:bg-zinc-800"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Todos
+                  </button>
 
-              {showFavorites && (
-                <button
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 bg-red-600 text-white"
-                >
-                  <Heart className="h-4 w-4 fill-current" />
-                  Favoritos ({favItems.length})
-                </button>
-              )}
+                  <div className="mt-2 mb-1 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                    Categorias
+                  </div>
 
-              <div className="mt-2 mb-1 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-                Categorias
-              </div>
-
-              {loadingCats ? (
-                <div className="space-y-2 px-3">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full bg-zinc-800" />
-                  ))}
-                </div>
-              ) : categories.length === 0 ? (
-                <p className="text-xs text-zinc-500 px-3 py-2">
-                  Nenhuma categoria.
-                </p>
-              ) : (
-                <div className="space-y-0.5">
-                  {categories.map((cat) => (
+                  {canaisCats.map((cat) => (
                     <button
-                      key={cat.category_id}
+                      key={cat}
                       onClick={() => {
-                        setActiveCategory(cat.category_id);
-                        setShowFavorites(false);
+                        setCanaisActiveCat(cat);
                         setShowMobileSidebar(false);
                       }}
                       className={cn(
                         "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors group",
-                        activeCategory === cat.category_id && !showFavorites
+                        canaisActiveCat === cat
                           ? "bg-red-600 text-white"
                           : "text-zinc-300 hover:bg-zinc-800"
                       )}
-                      title={cat.category_name}
                     >
-                      <span className="truncate flex-1">
-                        {cat.category_name}
-                      </span>
+                      <span className="truncate flex-1">{cat}</span>
                       <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </button>
                   ))}
-                </div>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setActiveCategory("all");
+                      setShowFavorites(false);
+                      setShowMobileSidebar(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors",
+                      activeCategory === "all" && !showFavorites
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-300 hover:bg-zinc-800"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Todas
+                  </button>
+
+                  {showFavorites && (
+                    <button
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 bg-red-600 text-white"
+                    >
+                      <Heart className="h-4 w-4 fill-current" />
+                      Favoritos ({favItems.length})
+                    </button>
+                  )}
+
+                  <div className="mt-2 mb-1 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                    Categorias
+                  </div>
+
+                  {loadingCats ? (
+                    <div className="space-y-2 px-3">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-8 w-full bg-zinc-800" />
+                      ))}
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <p className="text-xs text-zinc-500 px-3 py-2">
+                      Nenhuma categoria.
+                    </p>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.category_id}
+                          onClick={() => {
+                            setActiveCategory(cat.category_id);
+                            setShowFavorites(false);
+                            setShowMobileSidebar(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors group",
+                            activeCategory === cat.category_id && !showFavorites
+                              ? "bg-red-600 text-white"
+                              : "text-zinc-300 hover:bg-zinc-800"
+                          )}
+                          title={cat.category_name}
+                        >
+                          <span className="truncate flex-1">
+                            {cat.category_name}
+                          </span>
+                          <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </ScrollArea>
@@ -627,7 +735,11 @@ export function IPTVApp() {
               Categorias
             </Button>
             <span className="text-xs text-zinc-400 truncate">
-              {showFavorites
+              {showCanais
+                ? canaisActiveCat === "all"
+                  ? "Todos os canais"
+                  : canaisActiveCat
+                : showFavorites
                 ? `Favoritos (${favItems.length})`
                 : activeCategory === "all"
                 ? "Todas as categorias"
@@ -639,15 +751,24 @@ export function IPTVApp() {
           {/* Stats bar */}
           <div className="px-4 sm:px-6 py-3 border-b border-zinc-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <Server className="h-4 w-4 text-zinc-500 shrink-0" />
+              {showCanais ? (
+                <Radio className="h-4 w-4 text-zinc-500 shrink-0" />
+              ) : (
+                <Server className="h-4 w-4 text-zinc-500 shrink-0" />
+              )}
               <span className="text-xs text-zinc-400 truncate">
-                {credentials.server}
+                {showCanais ? "Canais Embed" : credentials.server}
               </span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              {!showFavorites && (
+              {!showFavorites && !showCanais && (
                 <span className="text-xs text-zinc-400">
                   {totalCount.toLocaleString("pt-BR")} itens
+                </span>
+              )}
+              {showCanais && (
+                <span className="text-xs text-zinc-400">
+                  {canaisFiltrados.length} canais
                 </span>
               )}
               <div className="hidden sm:flex items-center gap-1 border border-zinc-800 rounded-lg p-0.5">
@@ -680,7 +801,49 @@ export function IPTVApp() {
           {/* Grid */}
           <ScrollArea className="flex-1">
             <div className="p-4 sm:p-6">
-              {error ? (
+              {showCanais ? (
+                loadingCanais ? (
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                    {Array.from({ length: 18 }).map((_, i) => (
+                      <Skeleton key={i} className="bg-zinc-800 aspect-square rounded-xl" />
+                    ))}
+                  </div>
+                ) : canaisFiltrados.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Radio className="h-12 w-12 text-zinc-700 mb-3" />
+                    <p className="text-zinc-400 font-medium">
+                      {canaisSearch ? `Nenhum canal para "${canaisSearch}"` : "Nenhum canal disponível."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                    {canaisFiltrados.map((ch, idx) => (
+                      <div
+                        key={ch.id + idx}
+                        className="group relative bg-card rounded-xl overflow-hidden border border-border hover:border-primary/60 transition-all cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
+                        onClick={() => setCanaisPlayer({ nome: ch.nome, id: ch.id })}
+                      >
+                        <div className="relative w-full aspect-square bg-zinc-800 flex items-center justify-center">
+                          <Radio className="h-12 w-12 text-zinc-600" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                            <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
+                              <Play className="h-5 w-5 fill-current ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-2.5">
+                          <h3 className="text-sm font-medium truncate leading-tight" title={ch.nome}>
+                            {ch.nome}
+                          </h3>
+                          <p className="text-[10px] text-muted-foreground uppercase mt-0.5">
+                            {ch.cat}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : error ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <p className="text-red-400 mb-2">Erro ao carregar conteúdo</p>
                   <p className="text-sm text-zinc-500 max-w-md">{error}</p>
@@ -797,6 +960,15 @@ export function IPTVApp() {
           item={currentPlay}
           credentials={credentials}
           onClose={() => setPlay(null)}
+        />
+      )}
+
+      {/* Canais Player */}
+      {canaisPlayer && (
+        <CanaisPlayerModal
+          nome={canaisPlayer.nome}
+          id={canaisPlayer.id}
+          onClose={() => setCanaisPlayer(null)}
         />
       )}
 
