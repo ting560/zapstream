@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# dados estáticos baixados (opcional, gerado por scripts/download-assets.mjs)
+/public/data/iptv-data.json
+/public/logos/
+
 
 # typescript
 *.tsbuildinfo

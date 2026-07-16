@@ -32,7 +32,10 @@ async function callApi(
   try {
     const res = await fetch(url.toString(), {
       signal: controller.signal,
-      headers: { Accept: "application/json, text/plain, */*" },
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
     });
     clearTimeout(timeout);
     if (!res.ok) throw new Error(`Servidor respondeu ${res.status}`);
