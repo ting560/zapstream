@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3, Lock, Save } from "lucide-react";
+import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3, Lock, EyeOff, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -267,10 +267,98 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
+        {/* Abas */}
+        <TabControlCard />
+
         {/* Controle Parental */}
         <ParentalControlCard />
       </div>
     </div>
+  );
+}
+
+function TabControlCard() {
+  const [open, setOpen] = useState(false);
+  const [disabledTabs, setDisabledTabs] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const ALL_TABS = [
+    { id: "live", label: "TV ao Vivo" },
+    { id: "vod", label: "Filmes" },
+    { id: "series", label: "Séries" },
+    { id: "canais", label: "Canais" },
+    { id: "favoritos", label: "Favoritos" },
+  ];
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((s) => { if (s?.disabledTabs) setDisabledTabs(s.disabledTabs); })
+      .catch(() => {});
+  }, []);
+
+  const toggleTab = (id: string) => {
+    setDisabledTabs((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabledTabs }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <Card className="bg-zinc-900/70 backdrop-blur-xl border-zinc-800 mt-6">
+      <CardHeader className="cursor-pointer select-none" onClick={() => setOpen(!open)}>
+        <CardTitle className="text-lg text-zinc-200 flex items-center gap-2">
+          <EyeOff className="h-4 w-4 text-orange-500" />
+          Abas
+          <span className="text-xs text-zinc-500 font-normal ml-auto">
+            {open ? "Clique para recolher" : "Clique para expandir"}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      {open && (
+        <CardContent>
+          <p className="text-sm text-zinc-400 mb-4">
+            Desabilite abas que não deseja exibir no site.
+          </p>
+          <div className="space-y-3">
+            {ALL_TABS.map((tab) => {
+              const disabled = disabledTabs.includes(tab.id);
+              return (
+                <div key={tab.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-zinc-800/30 border border-zinc-800/50">
+                  <span className={`text-sm ${disabled ? "text-zinc-500 line-through" : "text-zinc-200"}`}>
+                    {tab.label}
+                  </span>
+                  <Switch
+                    checked={!disabled}
+                    onCheckedChange={() => toggleTab(tab.id)}
+                    className="data-[state=checked]:bg-green-500"
+                  />
+                </div>
+              );
+            })}
+            <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-500 text-white mt-2">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar"}
+            </Button>
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 

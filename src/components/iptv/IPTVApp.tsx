@@ -132,13 +132,15 @@ export function IPTVApp() {
     error?: string;
   }>({ active: false, total: 0, completed: 0, current: "", status: "idle" });
 
-  // Carregar configuracoes (categorias adultas)
+  // Configuracoes
+  const [disabledTabs, setDisabledTabs] = useState<string[]>([]);
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((settings) => {
         if (settings?.adultCategories) setAdultCategories(settings.adultCategories);
         if (settings?.pin) setPin(settings.pin);
+        if (settings?.disabledTabs) setDisabledTabs(settings.disabledTabs);
       })
       .catch(() => {});
   }, []);
@@ -472,7 +474,7 @@ export function IPTVApp() {
 
           {/* Tabs */}
           <div className="flex items-center gap-1 ml-2 sm:ml-4">
-            {TABS.map((t) => (
+            {TABS.filter((t) => !disabledTabs.includes(t.kind)).map((t) => (
               <Button
                 key={t.kind}
                 variant="ghost"
@@ -493,41 +495,45 @@ export function IPTVApp() {
                 <span className="hidden sm:inline">{t.label}</span>
               </Button>
             ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowCanais(true);
-                setShowFavorites(false);
-              }}
-              className={cn(
-                "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                showCanais ? "bg-zinc-800 text-white" : ""
-              )}
-            >
-              <Radio className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Canais</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setShowFavorites(true); setShowCanais(false); }}
-              className={cn(
-                "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                showFavorites ? "bg-zinc-800 text-white" : ""
-              )}
-            >
-              <Heart className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Favoritos</span>
-              {favorites.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-1 h-5 px-1.5 bg-red-600 text-white"
-                >
-                  {favorites.length}
-                </Badge>
-              )}
-            </Button>
+            {!disabledTabs.includes("canais") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowCanais(true);
+                  setShowFavorites(false);
+                }}
+                className={cn(
+                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                  showCanais ? "bg-zinc-800 text-white" : ""
+                )}
+              >
+                <Radio className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Canais</span>
+              </Button>
+            )}
+            {!disabledTabs.includes("favoritos") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setShowFavorites(true); setShowCanais(false); }}
+                className={cn(
+                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                  showFavorites ? "bg-zinc-800 text-white" : ""
+                )}
+              >
+                <Heart className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Favoritos</span>
+                {favorites.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 px-1.5 bg-red-600 text-white"
+                  >
+                    {favorites.length}
+                  </Badge>
+                )}
+              </Button>
+            )}
           </div>
 
           {/* Search */}
