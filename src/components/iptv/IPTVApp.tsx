@@ -647,7 +647,7 @@ export function IPTVApp() {
         {/* Sidebar (categorias) */}
         <aside
           className={cn(
-            "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform lg:translate-x-0 top-[57px] lg:top-0",
+            "fixed inset-y-0 left-0 z-40 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform lg:translate-x-0 top-[57px] lg:top-0",
             showMobileSidebar ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -789,7 +789,7 @@ export function IPTVApp() {
         )}
 
         {/* Content */}
-        <main className="flex-1 overflow-hidden flex flex-col">
+        <main className="flex-1 overflow-hidden flex flex-col lg:ml-72">
           {/* Mobile sidebar toggle */}
           <div className="lg:hidden p-3 border-b border-zinc-800 flex items-center gap-2">
             <Button
