@@ -143,69 +143,19 @@ export function IPTVApp() {
       .catch(() => {});
   }, []);
 
-  // Carregar canais do JSON e buscar logos correspondentes
+  // Carregar canais do JSON
   useEffect(() => {
     setLoadingCanais(true);
-
-    async function buildLogoMap(): Promise<Record<string, string>> {
-      const map: Record<string, string> = {};
-      // Tenta de várias fontes
-      const sources = [
-        () => { const c = localStorage.getItem("items_live_all"); return c ? JSON.parse(c) : null; },
-        async () => { const r = await fetch("/data/iptv-data.json").catch(() => {}); if (r?.ok) { const d = await r.json(); return d.liveStreams; } },
-        () => null,
-      ];
-      for (const src of sources) {
-        const items = await src();
-        if (Array.isArray(items)) {
-          for (const item of items) {
-            const name = (item.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (item.stream_icon) map[name] = item.stream_icon;
-          }
-          if (Object.keys(map).length > 0) break;
-        }
-      }
-      return map;
-    }
-
-    buildLogoMap().then((logoMap) => {
-      fetch("/canais_cache.json")
-        .then((r) => r.json())
-        .then((data: any[]) => {
-          const enriched = data.map((ch: any) => {
-            const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-            const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-            const logo = logoMap[chName] || logoMap[chId] || "";
-            return { ...ch, logo };
-          });
-          setCanaisChannels(enriched);
-          const cats = [...new Set(data.map((c) => c.cat))] as string[];
-          setCanaisCats(cats);
-        })
-        .catch(() => {})
-        .finally(() => setLoadingCanais(false));
-    });
-  }, []);
-
-  // Reativo: quando items carregam (ao vivo), atualiza logos dos canais
-  useEffect(() => {
-    if (!items.length) return;
-    const logoMap: Record<string, string> = {};
-    for (const item of items) {
-      const name = (item.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (item.stream_icon) logoMap[name] = item.stream_icon;
-    }
-    if (Object.keys(logoMap).length === 0) return;
-    setCanaisChannels((prev: any[]) =>
-      prev.map((ch: any) => {
-        if (ch.logo) return ch;
-        const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const logo = logoMap[chName] || logoMap[chId] || "";
-        return logo ? { ...ch, logo } : ch;
+    fetch("/canais_cache.json")
+      .then((r) => r.json())
+      .then((data: any[]) => {
+        setCanaisChannels(data);
+        const cats = [...new Set(data.map((c) => c.cat))] as string[];
+        setCanaisCats(cats);
       })
-    );
-  }, [items]);
+      .catch(() => {})
+      .finally(() => setLoadingCanais(false));
+  }, []);
 
   const handlePinUnlock = () => {
     setPinVerified(true);
@@ -943,15 +893,14 @@ export function IPTVApp() {
                         <div className="relative w-full aspect-square bg-zinc-800 flex items-center justify-center overflow-hidden">
                           {ch.logo ? (
                             <img
-                              src={cachedImg(ch.logo)}
+                              src={ch.logo}
                               alt=""
                               loading="lazy"
                               className="w-full h-full object-contain p-2"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden"); }}
                             />
-                          ) : (
-                            <Radio className="h-12 w-12 text-zinc-600" />
-                          )}
+                          ) : null}
+                          <Radio className={`h-12 w-12 text-zinc-600 ${ch.logo ? "hidden" : ""}`} />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                             <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
                               <Play className="h-5 w-5 fill-current ml-0.5" />

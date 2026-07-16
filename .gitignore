@@ -38,7 +38,6 @@ yarn-error.log*
 
 # dados estáticos baixados (opcional, gerado por scripts/download-assets.mjs)
 /public/data/*.json
-/public/logos/
 
 
 # typescript
