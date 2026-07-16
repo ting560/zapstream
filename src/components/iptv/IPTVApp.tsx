@@ -143,13 +143,36 @@ export function IPTVApp() {
       .catch(() => {});
   }, []);
 
-  // Carregar canais do JSON
+  // Carregar canais do JSON e buscar logos correspondentes
   useEffect(() => {
     setLoadingCanais(true);
+
+    // Tenta carregar logos do cache de canais ao vivo
+    let logoMap: Record<string, string> = {};
+    try {
+      const cached = localStorage.getItem("items_live_all");
+      if (cached) {
+        const liveItems = JSON.parse(cached);
+        if (Array.isArray(liveItems)) {
+          for (const item of liveItems) {
+            const name = (item.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (item.stream_icon) logoMap[name] = item.stream_icon;
+          }
+        }
+      }
+    } catch {}
+
     fetch("/canais_cache.json")
       .then((r) => r.json())
       .then((data: any[]) => {
-        setCanaisChannels(data);
+        // Tentar casar logos por nome
+        const enriched = data.map((ch: any) => {
+          const chName = (ch.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          const chId = (ch.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          const logo = logoMap[chName] || logoMap[chId] || "";
+          return { ...ch, logo };
+        });
+        setCanaisChannels(enriched);
         const cats = [...new Set(data.map((c) => c.cat))] as string[];
         setCanaisCats(cats);
       })
@@ -890,8 +913,18 @@ export function IPTVApp() {
                         className="group relative bg-card rounded-xl overflow-hidden border border-border hover:border-primary/60 transition-all cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
                         onClick={() => setCanaisPlayer({ nome: ch.nome, id: ch.id })}
                       >
-                        <div className="relative w-full aspect-square bg-zinc-800 flex items-center justify-center">
-                          <Radio className="h-12 w-12 text-zinc-600" />
+                        <div className="relative w-full aspect-square bg-zinc-800 flex items-center justify-center overflow-hidden">
+                          {ch.logo ? (
+                            <img
+                              src={cachedImg(ch.logo)}
+                              alt=""
+                              loading="lazy"
+                              className="w-full h-full object-contain p-2"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          ) : (
+                            <Radio className="h-12 w-12 text-zinc-600" />
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                             <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
                               <Play className="h-5 w-5 fill-current ml-0.5" />
