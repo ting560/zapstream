@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tv, Film, Star, Heart, Play, ImageIcon } from "lucide-react";
+import { Tv, Film, Star, Heart, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentKind, PlayItem } from "@/lib/iptv-types";
 import { useIPTVStore } from "@/lib/iptv-store";
@@ -32,6 +32,7 @@ export function ContentCard({
   const toggleFavorite = useIPTVStore((s) => s.toggleFavorite);
 
   const Icon = kind === "live" ? Tv : kind === "vod" ? Film : Star;
+  const initial = name.charAt(0).toUpperCase();
 
   const showImage = logo && !imgError;
   const imgSrc = cachedImg(showImage ? logo : undefined);
@@ -49,47 +50,48 @@ export function ContentCard({
         })
       }
     >
-      {/* Poster / Logo */}
       <div
         className={cn(
           "relative w-full bg-muted/30 overflow-hidden",
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
-            {imgSrc ? (
-              <>
-                {!imgLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
-                  </div>
-                )}
-                <img
-                  src={imgSrc}
-              alt={name}
-              loading="lazy"
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-              className={cn(
-                "w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105",
-                imgLoaded ? "opacity-100" : "opacity-0",
-                kind === "live" && "object-contain p-3"
-              )}
-            />
-          </>
+        {!imgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+            <span className="text-4xl font-bold text-primary/30 select-none">
+              {initial}
+            </span>
+          </div>
+        )}
+
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={name}
+            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => {
+              setImgError(true);
+              setImgLoaded(false);
+            }}
+            className={cn(
+              "w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105",
+              imgLoaded ? "opacity-100" : "opacity-0",
+              kind === "live" && "object-contain p-3"
+            )}
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <Icon className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
 
-        {/* Overlay com play */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
           <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
             <Play className="h-5 w-5 fill-current ml-0.5" />
           </div>
         </div>
 
-        {/* Badge Live */}
         {kind === "live" && (
           <div className="absolute top-2 left-2">
             <span className="inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
@@ -99,7 +101,6 @@ export function ContentCard({
           </div>
         )}
 
-        {/* Rating */}
         {rating && Number(rating) > 0 && (
           <div className="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
             <Star className="h-3 w-3 fill-yellow-400" />
@@ -107,7 +108,6 @@ export function ContentCard({
           </div>
         )}
 
-        {/* Favorito */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -125,7 +125,6 @@ export function ContentCard({
         </button>
       </div>
 
-      {/* Nome */}
       <div className="p-2.5">
         <h3 className="text-sm font-medium truncate leading-tight" title={name}>
           {name}
