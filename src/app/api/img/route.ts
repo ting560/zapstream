@@ -19,7 +19,7 @@ function fetchImage(url: string, maxRedirects = 5): Promise<{ data: Buffer; type
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const mod = u.protocol === "https:" ? https : http;
-    const req = mod.get(url, { timeout: 15000 }, (res) => {
+    const req = mod.get(url, { timeout: 15000, headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" } }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && maxRedirects > 0) {
         const redirectUrl = new URL(res.headers.location, url).toString();
         resolve(fetchImage(redirectUrl, maxRedirects - 1));
