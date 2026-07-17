@@ -1225,71 +1225,77 @@ export function IPTVApp() {
 
               <ScrollArea className="flex-1 max-h-[55vh]">
                 <div className="space-y-4 pr-2">
-                  {(seriesDialog.info.seasons || []).map((season) => {
-                    const epsArr = seriesDialog.info?.episodes;
-                    const eps = Array.isArray(epsArr)
-                      ? epsArr.filter(
-                          (e) =>
-                            Number(e.season) === Number(season.season_number)
-                        )
-                      : epsArr?.[String(season.season_number)] || [];
-                    if (eps.length === 0) return null;
-                    return (
-                      <div key={season.season_number}>
-                        <h4 className="text-sm font-semibold mb-2 text-zinc-300">
-                          Temporada {season.season_number}{" "}
-                          <span className="text-zinc-500 text-xs">
-                            ({eps.length} eps)
-                          </span>
-                        </h4>
-                        <div className="space-y-1.5">
-                          {eps.map((ep) => (
-                            <button
-                              key={ep.id}
-                              onClick={() => {
-                                setPlay({
-                                  kind: "series",
-                                  id: ep.id,
-                                  name: seriesDialog.series?.name || "",
-                                  logo: seriesDialog.series?.logo,
-                                  episode: {
+                  {(seriesDialog.info.seasons || []).length > 0 ? (
+                    (seriesDialog.info.seasons || []).map((season) => {
+                      const epsArr = seriesDialog.info?.episodes;
+                      const eps = Array.isArray(epsArr)
+                        ? epsArr.filter(
+                            (e) =>
+                              Number(e.season) === Number(season.season_number)
+                          )
+                        : epsArr?.[String(season.season_number)] || [];
+                      if (eps.length === 0) return null;
+                      return (
+                        <div key={season.season_number}>
+                          <h4 className="text-sm font-semibold mb-2 text-zinc-300">
+                            Temporada {season.season_number}{" "}
+                            <span className="text-zinc-500 text-xs">
+                              ({eps.length} eps)
+                            </span>
+                          </h4>
+                          <div className="space-y-1.5">
+                            {eps.map((ep) => (
+                              <button
+                                key={ep.id}
+                                onClick={() => {
+                                  setPlay({
+                                    kind: "series",
                                     id: ep.id,
-                                    title: `T${season.season_number}E${ep.episode_num} - ${ep.title}`,
-                                    container_extension:
-                                      ep.container_extension || "mp4",
-                                  },
-                                });
-                                setSeriesDialog({
-                                  open: false,
-                                  loading: false,
-                                });
-                              }}
-                              className="w-full text-left px-3 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-sm flex items-center justify-between gap-3 group"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium truncate">
-                                  Ep. {ep.episode_num}: {ep.title}
-                                </p>
-                                {ep.info?.duration && (
-                                  <p className="text-xs text-zinc-500">
-                                    {ep.info.duration}
+                                    name: seriesDialog.series?.name || "",
+                                    logo: seriesDialog.series?.logo,
+                                    episode: {
+                                      id: ep.id,
+                                      title: `T${season.season_number}E${ep.episode_num} - ${ep.title}`,
+                                      container_extension:
+                                        ep.container_extension || "mp4",
+                                    },
+                                  });
+                                  setSeriesDialog({
+                                    open: false,
+                                    loading: false,
+                                  });
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-sm flex items-center justify-between gap-3 group"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium truncate">
+                                    Ep. {ep.episode_num}: {ep.title}
                                   </p>
-                                )}
-                              </div>
-                              <div className="bg-primary text-primary-foreground rounded-full h-7 w-7 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                <svg
-                                  className="h-3 w-3 fill-current ml-0.5"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </div>
-                            </button>
-                          ))}
+                                  {ep.info?.duration && (
+                                    <p className="text-xs text-zinc-500">
+                                      {ep.info.duration}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-primary text-primary-foreground rounded-full h-7 w-7 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                  <svg
+                                    className="h-3 w-3 fill-current ml-0.5"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-zinc-500 text-center py-8">
+                      Nenhum episódio disponível para esta série no servidor.
+                    </p>
+                  )}
                 </div>
               </ScrollArea>
             </div>
