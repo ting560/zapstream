@@ -648,13 +648,7 @@ export function IPTVApp() {
         )}
       </header>
 
-      {/* Native Banner */}
-      <div className="px-4 sm:px-6 py-3 border-b border-zinc-800 bg-zinc-950/50 flex justify-center">
-        <div className="w-full max-w-3xl flex justify-center">
-          <script async="async" data-cfasync="false" src="https://pl30354693.effectivecpmnetwork.com/83db2da36f450d487d008356efe65b22/invoke.js" />
-          <div id="container-83db2da36f450d487d008356efe65b22" />
-        </div>
-      </div>
+
 
       {/* Body: sidebar + content */}
       <div className="flex-1 flex overflow-hidden">
@@ -677,22 +671,6 @@ export function IPTVApp() {
             </Button>
           </div>
 
-          {/* Banner 300x250 */}
-          <div className="p-3 flex justify-center border-b border-zinc-800">
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  atOptions = {
-                    'key' : '443dfd27df99ddf8dea113eceb887912',
-                    'format' : 'iframe',
-                    'height' : 250,
-                    'width' : 300,
-                    'params' : {}
-                  };
-                `
-              }}
-            />
-          </div>
           <ScrollArea className="h-[calc(100vh-57px)] lg:h-[calc(100vh-57px)]">
             <div className="p-3">
               {showCanais ? (
@@ -1312,6 +1290,31 @@ export function IPTVApp() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Ads */}
+      <div className="px-4 sm:px-6 py-4 border-t border-zinc-800 bg-zinc-950 flex flex-col items-center gap-4">
+        {/* Native Banner */}
+        <div className="w-full max-w-3xl flex justify-center">
+          <script async="async" data-cfasync="false" src="https://pl30354693.effectivecpmnetwork.com/83db2da36f450d487d008356efe65b22/invoke.js" />
+          <div id="container-83db2da36f450d487d008356efe65b22" />
+        </div>
+        {/* Banner 300x250 */}
+        <div className="flex justify-center">
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                atOptions = {
+                  'key' : '443dfd27df99ddf8dea113eceb887912',
+                  'format' : 'iframe',
+                  'height' : 250,
+                  'width' : 300,
+                  'params' : {}
+                };
+              `
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
