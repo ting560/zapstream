@@ -293,9 +293,19 @@ export function IPTVApp() {
 
   // Filtrar por busca
   const filteredItems = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    return items.filter((it) => (it.name || "").toLowerCase().includes(q));
+    let list = items;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = items.filter((it) => (it.name || "").toLowerCase().includes(q));
+    }
+    // Deduplicar por nome (servidor IPTV retorna duplicatas)
+    const seen = new Set<string>();
+    return list.filter((it) => {
+      const key = (it.name || "").toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [items, search]);
 
   // Favoritos do tipo atual
