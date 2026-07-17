@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tv, Film, Star, Heart, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentKind, PlayItem } from "@/lib/iptv-types";
 import { useIPTVStore } from "@/lib/iptv-store";
-import { cachedImg } from "@/lib/img-cache";
+import { getPosterUrl } from "@/lib/tmdb-cache";
 
 interface ContentCardProps {
   id: number | string;
@@ -26,14 +26,32 @@ export function ContentCard({
   containerExtension,
   onPlay,
 }: ContentCardProps) {
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const mountedRef = useRef(true);
   const isFav = useIPTVStore((s) => s.isFavorite(id, kind));
   const toggleFavorite = useIPTVStore((s) => s.toggleFavorite);
 
   const Icon = kind === "live" ? Tv : kind === "vod" ? Film : Star;
   const initial = name.charAt(0).toUpperCase();
 
-  const imgSrc = cachedImg(logo, name, kind);
+  useEffect(() => {
+    mountedRef.current = true;
+    if (kind === "live") {
+      // Canais ao vivo: usa URL original
+      setPosterUrl(logo || null);
+      return;
+    }
+    // VOD / Séries: busca do cache ou TMDB
+    getPosterUrl(name, kind).then((url) => {
+      if (mountedRef.current) setPosterUrl(url);
+    });
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [name, kind, logo]);
+
+  const showImg = posterUrl && !imgError;
 
   return (
     <div
@@ -54,9 +72,9 @@ export function ContentCard({
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
-        {!imgError && imgSrc ? (
+        {showImg ? (
           <img
-            src={imgSrc}
+            src={posterUrl}
             alt={name}
             loading="lazy"
             onError={() => setImgError(true)}
@@ -65,15 +83,13 @@ export function ContentCard({
               kind === "live" && "object-contain p-3"
             )}
           />
-        ) : null}
-
-        {imgError || !imgSrc ? (
+        ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
             <span className="text-4xl font-bold text-primary/30 select-none">
               {initial}
             </span>
           </div>
-        ) : null}
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
           <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
