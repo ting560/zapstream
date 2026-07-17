@@ -442,7 +442,7 @@ export function IPTVApp() {
         custom_sid: "",
         direct_source: "",
       }))
-    : filteredItems.slice(0, 800);
+    : filteredItems.slice(0, 100);
 
   const totalCount = showFavorites ? favItems.length : filteredItems.length;
 
