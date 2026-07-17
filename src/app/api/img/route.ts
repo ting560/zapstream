@@ -26,7 +26,7 @@ async function searchTMDB(name: string, kind: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "zapstream/1.0" },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return null;
     const json: any = await res.json();
@@ -38,15 +38,16 @@ async function searchTMDB(name: string, kind: string): Promise<string | null> {
   }
 }
 
-async function fetchImage(url: string): Promise<{ data: ArrayBuffer; type: string } | null> {
+async function fetchImage(url: string): Promise<{ data: Buffer; type: string } | null> {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 zapstream/1.0" },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
     return {
-      data: await res.arrayBuffer(),
+      data: buf,
       type: res.headers.get("content-type") || "image/jpeg",
     };
   } catch {
