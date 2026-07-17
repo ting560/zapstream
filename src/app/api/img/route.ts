@@ -2,16 +2,59 @@ import { NextRequest, NextResponse } from "next/server";
 import https from "https";
 import http from "http";
 
+const TMDB_KEY = process.env.TMDB_KEY || "8ac491f51024cd437403cd282cfe1004";
+const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
+
 const PLACEHOLDER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
   <rect fill="#1a1a2e" width="300" height="450"/>
   <circle cx="150" cy="200" r="50" fill="#2d2d5e" opacity="0.5"/>
   <text x="150" y="210" text-anchor="middle" fill="#666" font-size="32" font-family="sans-serif">?</text>
-  <text x="150" y="360" text-anchor="middle" fill="#444" font-size="14" font-family="sans-serif" max-width="280"></text>
 </svg>`;
 
 const MEMORY_CACHE = new Map<string, { data: Buffer; type: string }>();
 const MAX_CACHE = 500;
 const IN_FLIGHT = new Map<string, Promise<{ data: Buffer; type: string }>>();
+const TMDB_POSTER_CACHE = new Map<string, string | null>();
+
+function cleanTitle(title: string): string {
+  return title
+    .replace(/\s*\(Dublado\)\s*/gi, "")
+    .replace(/\s*\(Legendado\)\s*/gi, "")
+    .replace(/\s*\(Original\)\s*/gi, "")
+    .replace(/\s*-\s*\d{4}\s*-\s*\d+p\s*/g, "")
+    .replace(/\s*-\s*\d{4}\s*/g, "")
+    .replace(/\s*-\s*[^-]+$/, "")
+    .trim();
+}
+
+async function searchTMDB(name: string, kind: string): Promise<string | null> {
+  const cacheKey = `${kind}:${name}`;
+  if (TMDB_POSTER_CACHE.has(cacheKey)) return TMDB_POSTER_CACHE.get(cacheKey);
+
+  const clean = cleanTitle(name);
+  if (!clean) return null;
+
+  const endpoint = kind === "series" ? "tv" : "movie";
+  const url = `https://api.themoviedb.org/3/search/${endpoint}?api_key=${TMDB_KEY}&query=${encodeURIComponent(clean)}&language=pt-BR`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 zapstream/1.0" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const poster = json?.results?.[0]?.poster_path;
+    if (!poster) {
+      TMDB_POSTER_CACHE.set(cacheKey, null);
+      return null;
+    }
+    TMDB_POSTER_CACHE.set(cacheKey, poster);
+    return poster;
+  } catch {
+    return null;
+  }
+}
 
 function fetchRemote(url: string, signal?: AbortSignal): Promise<{ data: Buffer; type: string }> {
   return new Promise((resolve, reject) => {
@@ -80,10 +123,17 @@ async function getImage(target: string): Promise<{ data: Buffer; type: string }>
 }
 
 export async function GET(req: NextRequest) {
-  const target = new URL(req.url).searchParams.get("url");
-  if (!target) return new NextResponse("Missing url", { status: 400 });
+  const { searchParams } = new URL(req.url);
+  const target = searchParams.get("url");
+  const name = searchParams.get("name");
+  const kind = searchParams.get("kind") || "vod";
 
-  const ext = target.match(/\.(jpe?g|png|gif|webp|svg|ico|bmp)(\?|$)/i)?.[1]?.toLowerCase() || "jpg";
+  // Se não tem URL e não tem nome, não dá pra fazer nada
+  if (!target && !name) {
+    return new NextResponse("Missing url or name", { status: 400 });
+  }
+
+  const ext = target?.match(/\.(jpe?g|png|gif|webp|svg|ico|bmp)(\?|$)/i)?.[1]?.toLowerCase() || "jpg";
   const contentType =
     {
       jpg: "image/jpeg",
@@ -96,24 +146,54 @@ export async function GET(req: NextRequest) {
       bmp: "image/bmp",
     }[ext] || "image/jpeg";
 
-  try {
-    const { data, type } = await getImage(target);
-    return new NextResponse(data, {
-      status: 200,
-      headers: {
-        "Content-Type": type || contentType,
-        "Cache-Control": "public, max-age=86400, immutable",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  } catch {
-    return new NextResponse(PLACEHOLDER_SVG, {
-      status: 200,
-      headers: {
-        "Content-Type": "image/svg+xml",
-        "Cache-Control": "public, max-age=600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+  // Tenta buscar a URL remota primeiro
+  if (target) {
+    try {
+      const { data, type } = await getImage(target);
+      return new NextResponse(data, {
+        status: 200,
+        headers: {
+          "Content-Type": type || contentType,
+          "Cache-Control": "public, max-age=86400, immutable",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    } catch {
+      // Fallback: tenta TMDB
+    }
   }
+
+  // Fallback TMDB
+  if (name) {
+    try {
+      const poster = await searchTMDB(name, kind);
+      if (poster) {
+        const tmdbUrl = `${TMDB_IMG}${poster}`;
+        try {
+          const { data, type } = await getImage(tmdbUrl);
+          return new NextResponse(data, {
+            status: 200,
+            headers: {
+              "Content-Type": type || "image/jpeg",
+              "Cache-Control": "public, max-age=86400, immutable",
+              "Access-Control-Allow-Origin": "*",
+            },
+          });
+        } catch {
+          // TMDB fetch failed, fall through to placeholder
+        }
+      }
+    } catch {
+      // TMDB search failed
+    }
+  }
+
+  return new NextResponse(PLACEHOLDER_SVG, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=600",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }

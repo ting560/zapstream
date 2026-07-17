@@ -35,7 +35,7 @@ export function ContentCard({
   const initial = name.charAt(0).toUpperCase();
 
   const showImage = logo && !imgError;
-  const imgSrc = cachedImg(showImage ? logo : undefined);
+  const imgSrc = cachedImg(showImage ? logo : undefined, showImage ? undefined : name, kind);
 
   return (
     <div
