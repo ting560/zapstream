@@ -26,7 +26,6 @@ export function ContentCard({
   containerExtension,
   onPlay,
 }: ContentCardProps) {
-  const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const isFav = useIPTVStore((s) => s.isFavorite(id, kind));
   const toggleFavorite = useIPTVStore((s) => s.toggleFavorite);
@@ -34,8 +33,7 @@ export function ContentCard({
   const Icon = kind === "live" ? Tv : kind === "vod" ? Film : Star;
   const initial = name.charAt(0).toUpperCase();
 
-  const showImage = logo && !imgError;
-  const imgSrc = cachedImg(showImage ? logo : undefined, showImage ? undefined : name, kind);
+  const imgSrc = cachedImg(logo, name, kind);
 
   return (
     <div
@@ -56,35 +54,26 @@ export function ContentCard({
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
-        {!imgLoaded && (
+        {!imgError && imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={name}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className={cn(
+              "w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105",
+              kind === "live" && "object-contain p-3"
+            )}
+          />
+        ) : null}
+
+        {imgError || !imgSrc ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
             <span className="text-4xl font-bold text-primary/30 select-none">
               {initial}
             </span>
           </div>
-        )}
-
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={name}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => {
-              setImgError(true);
-              setImgLoaded(false);
-            }}
-            className={cn(
-              "w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105",
-              imgLoaded ? "opacity-100" : "opacity-0",
-              kind === "live" && "object-contain p-3"
-            )}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Icon className="h-10 w-10 text-muted-foreground/30" />
-          </div>
-        )}
+        ) : null}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
           <div className="bg-primary text-primary-foreground rounded-full h-11 w-11 flex items-center justify-center shadow-lg">
