@@ -8,6 +8,7 @@ function cleanTitle(title: string): string {
     .replace(/\s*\(Dublado\)\s*/gi, "")
     .replace(/\s*\(Legendado\)\s*/gi, "")
     .replace(/\s*\(Original\)\s*/gi, "")
+    .replace(/\s*-\s*(Dublado|Legendado|Nacional|Original|Dublado\s*-\s*Nacional)\s*$/gi, "")
     .replace(/\s*S\d{1,2}\s*$/i, "")
     .replace(/\s*-\s*\d{4}\s*-\s*\d+p\s*/g, "")
     .replace(/\s*-\s*\d{4}\s*-\s*[^-]+$/, "")
