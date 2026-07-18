@@ -510,12 +510,10 @@ export function IPTVApp() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setShowCanais(true);
-                  setShowFavorites(false);
+                  window.open("https://blueviolet-newt-188057.hostingersite.com/200/?c=sportv", "_blank");
                 }}
                 className={cn(
-                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                  showCanais ? "bg-zinc-800 text-white" : ""
+                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 )}
               >
                 <Radio className="h-4 w-4 sm:mr-2" />

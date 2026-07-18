@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { X, Tv } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
+import { X, Loader2, AlertTriangle, Tv } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,7 +17,69 @@ export function CanaisPlayerModal({
   id,
   onClose,
 }: CanaisPlayerModalProps) {
-  const url = `https://embedcanaisdetv.xyz/e/index.php?canal=${id}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [status, setStatus] = useState<"loading" | "playing" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setStatus("loading");
+    setErrorMsg("");
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    const src = `/api/canais/stream?c=${encodeURIComponent(id)}&f=index.m3u8`;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().then(() => setStatus("playing")).catch(() => setStatus("playing"));
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              setErrorMsg("Erro de rede ao carregar o stream. O canal pode estar offline.");
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setErrorMsg("Erro de mídia. Formato de stream incompatível.");
+              break;
+            default:
+              setErrorMsg("Não foi possível reproduzir este conteúdo.");
+              break;
+          }
+          setStatus("error");
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.addEventListener("loadedmetadata", () => {
+        video.play().catch(() => {});
+        setStatus("playing");
+      }, { once: true });
+    } else {
+      setErrorMsg("Seu navegador não suporta HLS.");
+      setStatus("error");
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [id]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -63,19 +126,36 @@ export function CanaisPlayerModal({
         </div>
 
         <div className="relative aspect-video bg-black w-full">
-          <iframe
-            src={url}
+          <video
+            ref={videoRef}
             className="w-full h-full"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture"
+            controls
+            autoPlay
+            playsInline
           />
+
+          {status === "loading" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 pointer-events-none">
+              <Loader2 className="h-10 w-10 text-white animate-spin" />
+              <p className="text-white/80 text-sm">Carregando stream...</p>
+            </div>
+          )}
+
+          {status === "error" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center">
+              <AlertTriangle className="h-10 w-10 text-amber-400" />
+              <p className="text-white font-medium">Falha ao reproduzir</p>
+              <p className="text-white/70 text-sm max-w-md">{errorMsg}</p>
+              <Button variant="secondary" onClick={onClose} className="mt-2">
+                Fechar
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-3 bg-zinc-900 border-t border-white/10">
           <p className="text-white/90 text-sm truncate">{nome}</p>
-          <p className="text-white/50 text-xs truncate">
-            embedcanaisdetv.xyz
-          </p>
+          <p className="text-white/50 text-xs truncate">embedcanaisdetv.xyz</p>
         </div>
       </div>
     </div>
