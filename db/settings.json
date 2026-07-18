@@ -1,8 +1,6 @@
 {
-  "adultCategories": [
-    "Erótico",
-    "Adultos",
-    "XXX"
-  ],
-  "pin": "123456"
+  "adultCategories": ["Erótico", "Adultos", "XXX"],
+  "pin": "123456",
+  "disabledTabs": ["live"],
+  "adminPassword": "Frenesi04"
 }

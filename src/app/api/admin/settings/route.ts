@@ -12,7 +12,7 @@ interface AppSettings {
 const DEFAULT_SETTINGS: AppSettings = {
   adultCategories: ["Erótico", "Adultos", "XXX"],
   pin: "123456",
-  disabledTabs: [],
+  disabledTabs: ["live"],
   adminPassword: "Frenesi04",
 };
 
