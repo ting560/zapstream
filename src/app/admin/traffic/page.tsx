@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3, Users, Eye, Globe, MapPin, Clock,
-  ArrowLeft, RefreshCw, Trash2, Loader2,
+  ArrowLeft, RefreshCw, Trash2, Loader2, Lock,
   Calendar, Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Visit {
@@ -93,6 +94,10 @@ function BarChart({ data, title, icon: Icon }: { data: AggItem[]; title: string;
 
 export default function TrafficPage() {
   const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [passInput, setPassInput] = useState("");
+  const [passError, setPassError] = useState("");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("today");
@@ -108,7 +113,17 @@ export default function TrafficPage() {
     setLoading(false);
   }, [period, page]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const auth = sessionStorage.getItem("admin_auth");
+    if (auth !== "true") {
+      router.replace("/admin");
+    } else {
+      setAuthenticated(true);
+    }
+    setChecking(false);
+  }, [router]);
+
+  useEffect(() => { if (authenticated) fetchData(); }, [authenticated, fetchData]);
 
   const handleClear = async () => {
     if (!confirm("Limpar todos os dados de tráfego?")) return;
@@ -262,7 +277,39 @@ export default function TrafficPage() {
                             : ua.includes("Safari") ? "Safari"
                             : ua.includes("Edge") ? "Edge"
                             : "Outro";
-                          return (
+  if (checking) return null;
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center gap-3 mb-6 justify-center">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-purple-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+              <Lock className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold">Admin</h1>
+          </div>
+          <form onSubmit={async (e) => { e.preventDefault(); setPassError(""); try { const r = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: passInput }) }); const d = await r.json(); if (d.valid) { sessionStorage.setItem("admin_auth", "true"); setAuthenticated(true); } else { setPassError("Senha incorreta"); } } catch { setPassError("Erro ao verificar senha"); } }} className="space-y-4">
+            <Input
+              type="password"
+              value={passInput}
+              onChange={(e) => setPassInput(e.target.value)}
+              placeholder="Senha de administrador"
+              className="bg-zinc-800/50 border-zinc-700 text-white text-center text-lg h-12"
+              autoFocus
+            />
+            {passError && <p className="text-red-400 text-sm text-center">{passError}</p>}
+            <Button type="submit" className="w-full bg-gradient-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white h-12 text-lg">
+              <Lock className="h-4 w-4 mr-2" />
+              Entrar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
                             <tr key={v.id} className="border-b border-zinc-800/50 text-zinc-300 hover:bg-zinc-800/30">
                               <td className="py-2 pr-4 whitespace-nowrap">{formatDate(v.timestamp)}</td>
                               <td className="py-2 pr-4 font-mono text-xs">{v.ip}</td>

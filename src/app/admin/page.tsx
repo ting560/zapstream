@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3, Lock, EyeOff, Save } from "lucide-react";
+import { Tv, Plus, Pencil, Trash2, Server, Loader2, ArrowLeft, RefreshCw, AlertCircle, BarChart3, Lock, EyeOff, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,12 +31,45 @@ const emptyForm: ServerForm = { name: "", url: "", username: "", password: "" };
 
 export default function AdminPage() {
   const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [passInput, setPassInput] = useState("");
+  const [passError, setPassError] = useState("");
   const [servers, setServers] = useState<ServerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<ServerForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const auth = sessionStorage.getItem("admin_auth");
+    if (auth === "true") {
+      setAuthenticated(true);
+    }
+    setChecking(false);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError("");
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passInput }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        sessionStorage.setItem("admin_auth", "true");
+        setAuthenticated(true);
+      } else {
+        setPassError("Senha incorreta");
+      }
+    } catch {
+      setPassError("Erro ao verificar senha");
+    }
+  };
 
   const loadServers = async () => {
     try {
@@ -108,6 +141,40 @@ export default function AdminPage() {
     }
   };
 
+  if (checking) return null;
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center gap-3 mb-6 justify-center">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-purple-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+              <Lock className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold">Admin</h1>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input
+              type="password"
+              value={passInput}
+              onChange={(e) => setPassInput(e.target.value)}
+              placeholder="Senha de administrador"
+              className="bg-zinc-800/50 border-zinc-700 text-white text-center text-lg h-12"
+              autoFocus
+            />
+            {passError && (
+              <p className="text-red-400 text-sm text-center">{passError}</p>
+            )}
+            <Button type="submit" className="w-full bg-gradient-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white h-12 text-lg">
+              <Lock className="h-4 w-4 mr-2" />
+              Entrar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4">
       <div className="max-w-5xl mx-auto">
@@ -136,6 +203,15 @@ export default function AdminPage() {
             <Button variant="ghost" size="sm" onClick={() => router.push("/admin/traffic")} className="text-zinc-400 hover:text-white">
               <BarChart3 className="h-4 w-4 mr-1" />
               Tráfego
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { sessionStorage.removeItem("admin_auth"); setAuthenticated(false); }}
+              className="text-zinc-400 hover:text-red-400"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              Sair
             </Button>
           </div>
         </div>
