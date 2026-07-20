@@ -547,20 +547,20 @@ export function IPTVApp() {
           {/* Search */}
           <div className="flex-1 max-w-md ml-auto">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
               {showCanais ? (
                 <Input
                   value={canaisSearch}
                   onChange={(e) => setCanaisSearch(e.target.value)}
                   placeholder="Buscar canais..."
-                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
+                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30 text-lg h-11"
                 />
               ) : (
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar..."
-                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30"
+                  className="bg-zinc-900 border-zinc-800 text-white pl-10 focus-visible:ring-red-500/30 text-lg h-11"
                 />
               )}
             </div>

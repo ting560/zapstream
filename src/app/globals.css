@@ -118,5 +118,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 1.125rem;
   }
 }
