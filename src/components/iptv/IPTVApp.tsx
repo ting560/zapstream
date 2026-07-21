@@ -478,8 +478,8 @@ export function IPTVApp() {
             )}
           </div>
 
-          {/* Search */}
-          <div className="flex-1 max-w-md ml-auto">
+          {/* Search (desktop only) */}
+          <div className="hidden lg:block flex-1 max-w-md ml-auto">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
               {showCanais ? (
@@ -654,29 +654,35 @@ export function IPTVApp() {
 
         {/* Content */}
         <main className="flex-1 overflow-hidden flex flex-col lg:ml-72">
-          {/* Mobile sidebar toggle */}
+          {/* Mobile sidebar toggle + search */}
           <div className="lg:hidden p-3 border-b border-zinc-800 flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowMobileSidebar(true)}
-              className="bg-zinc-900 border-zinc-700 text-white"
+              className="bg-zinc-900 border-zinc-700 text-white shrink-0"
             >
               <Menu className="h-4 w-4 mr-2" />
               Categorias
             </Button>
-            <span className="text-xs text-zinc-400 truncate">
-              {showCanais
-                ? canaisActiveCat === "all"
-                  ? "Todos os canais"
-                  : canaisActiveCat
-                : showFavorites
-                ? `Favoritos (${favItems.length})`
-                : activeCategory === "all"
-                ? "Todas as categorias"
-                : categories.find((c) => c.category_id === activeCategory)
-                    ?.category_name || "Categoria"}
-            </span>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              {showCanais ? (
+                <Input
+                  value={canaisSearch}
+                  onChange={(e) => setCanaisSearch(e.target.value)}
+                  placeholder="Buscar canais..."
+                  className="bg-zinc-900 border-zinc-800 text-white pl-9 focus-visible:ring-red-500/30 text-sm h-9"
+                />
+              ) : (
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar filmes, séries..."
+                  className="bg-zinc-900 border-zinc-800 text-white pl-9 focus-visible:ring-red-500/30 text-sm h-9"
+                />
+              )}
+            </div>
           </div>
 
           {/* Stats bar */}
