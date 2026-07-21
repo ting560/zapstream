@@ -566,24 +566,6 @@ export function IPTVApp() {
             </div>
           </div>
 
-          {/* Download covers */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDownloadCovers}
-            disabled={downloadState.active || items.length === 0}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-800/50 shrink-0"
-            title={downloadState.status === "done" ? "Capas baixadas" : "Baixar capas"}
-          >
-            {downloadState.status === "done" ? (
-              <CheckCircle2 className="h-4 w-4 text-green-400" />
-            ) : downloadState.active ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-          </Button>
-
           {/* Logout */}
           <Button
             variant="ghost"
