@@ -124,30 +124,30 @@
 
 @media (min-width: 1024px) {
   body {
-    font-size: 1.25rem;
-  }
-  .text-xs {
-    font-size: 0.8125rem;
-  }
-  .text-sm {
-    font-size: 0.9375rem;
-  }
-  .text-base {
-    font-size: 1.125rem;
-  }
-  .text-lg {
     font-size: 1.375rem;
   }
+  .text-\[10px\] {
+    font-size: 0.75rem;
+  }
+  .text-xs {
+    font-size: 0.9375rem;
+  }
+  .text-sm {
+    font-size: 1.0625rem;
+  }
+  .text-base {
+    font-size: 1.25rem;
+  }
+  .text-lg {
+    font-size: 1.5rem;
+  }
   .text-xl {
-    font-size: 1.625rem;
+    font-size: 1.75rem;
   }
   .text-2xl {
-    font-size: 1.875rem;
+    font-size: 2rem;
   }
   .text-4xl {
-    font-size: 3rem;
-  }
-  h3, .font-medium.truncate {
-    font-size: 1rem;
+    font-size: 3.25rem;
   }
 }
