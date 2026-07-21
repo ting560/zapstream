@@ -13,12 +13,14 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
 
+    const decode = (v: string | null) => v ? decodeURIComponent(v) : "Desconhecida";
+
     const record = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
       ip,
-      city: req.headers.get("x-vercel-ip-city") || "Desconhecida",
-      region: req.headers.get("x-vercel-ip-country-region") || "Desconhecido",
-      country: req.headers.get("x-vercel-ip-country") || "Desconhecido",
+      city: decode(req.headers.get("x-vercel-ip-city")),
+      region: decode(req.headers.get("x-vercel-ip-country-region")),
+      country: decode(req.headers.get("x-vercel-ip-country")),
       page: body.page || "/",
       user_agent: req.headers.get("user-agent") || "unknown",
       referrer: req.headers.get("referer") || "",
