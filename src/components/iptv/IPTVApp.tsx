@@ -8,7 +8,6 @@ import {
   Search,
   Heart,
   Loader2,
-  LogOut,
   Menu,
   X,
   Server,
@@ -16,10 +15,7 @@ import {
   List,
   ChevronRight,
   Play,
-  Download,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
   Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,16 +117,6 @@ export function IPTVApp() {
   const [pinVerified, setPinVerified] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingPlay, setPendingPlay] = useState<PlayItem | null>(null);
-
-  // Download de capas
-  const [downloadState, setDownloadState] = useState<{
-    active: boolean;
-    total: number;
-    completed: number;
-    current: string;
-    status: "idle" | "downloading" | "done" | "error";
-    error?: string;
-  }>({ active: false, total: 0, completed: 0, current: "", status: "idle" });
 
   // Configuracoes
   const [disabledTabs, setDisabledTabs] = useState<string[]>([]);
@@ -381,58 +367,6 @@ export function IPTVApp() {
     [items, categories, adultCategories, pinVerified, handlePlayContent]
   );
 
-  const handleLogout = () => {
-    setAuthenticated(false);
-  };
-
-  const handleDownloadCovers = useCallback(async () => {
-    const allItems = items;
-    const urls: string[] = [];
-    for (const item of allItems) {
-      if (item.stream_icon) urls.push(item.stream_icon);
-      if (item.cover) urls.push(item.cover);
-    }
-    if (urls.length === 0) return;
-
-    setDownloadState({ active: true, total: urls.length, completed: 0, current: "", status: "downloading" });
-
-    try {
-      const res = await fetch("/api/covers/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls }),
-      });
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("Sem resposta do servidor");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = JSON.parse(line.slice(6));
-            setDownloadState({
-              active: data.status !== "done",
-              total: data.total,
-              completed: data.completed,
-              current: data.current,
-              status: data.status === "done" ? "done" : data.status === "error" ? "error" : "downloading",
-              error: data.error,
-            });
-          }
-        }
-      }
-    } catch (e: any) {
-      setDownloadState((s) => ({ ...s, status: "error", error: e.message }));
-    }
-  }, [items]);
 
   // Quantidade limite de items por busca (para não estourar o DOM com 50k items)
   const displayItems = showFavorites
@@ -566,76 +500,8 @@ export function IPTVApp() {
             </div>
           </div>
 
-          {/* Logout */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-800/50 shrink-0"
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
         </div>
 
-        {/* Progress bar */}
-        {downloadState.active && (
-          <div className="px-4 sm:px-6 py-2 border-t border-zinc-800 bg-zinc-900/50">
-            <div className="flex items-center gap-3 text-xs text-zinc-400">
-              <span className="shrink-0">
-                {downloadState.status === "downloading"
-                  ? `Baixando capas...`
-                  : downloadState.status === "done"
-                  ? "Download concluído!"
-                  : "Erro no download"}
-              </span>
-              <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-300",
-                    downloadState.status === "done"
-                      ? "bg-green-500"
-                      : downloadState.status === "error"
-                      ? "bg-red-500"
-                      : "bg-red-500"
-                  )}
-                  style={{
-                    width: `${
-                      downloadState.total > 0
-                        ? (downloadState.completed / downloadState.total) * 100
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-              <span className="shrink-0 w-24 text-right tabular-nums">
-                {downloadState.completed}/{downloadState.total}
-                {downloadState.total > 0 &&
-                  ` (${Math.round(
-                    (downloadState.completed / downloadState.total) * 100
-                  )}%)`}
-              </span>
-              {downloadState.status === "done" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-zinc-500 hover:text-white"
-                  onClick={() =>
-                    setDownloadState({
-                      active: false,
-                      total: 0,
-                      completed: 0,
-                      current: "",
-                      status: "idle",
-                    })
-                  }
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
       </header>
 
 
