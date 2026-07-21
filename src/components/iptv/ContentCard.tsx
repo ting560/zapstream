@@ -131,7 +131,7 @@ export function ContentCard({
       </div>
 
       <div className="p-2.5">
-        <h3 className="text-sm font-medium truncate leading-tight" title={name}>
+        <h3 className="text-sm font-medium leading-snug" title={name}>
           {name}
         </h3>
         {kind !== "live" && containerExtension && (
