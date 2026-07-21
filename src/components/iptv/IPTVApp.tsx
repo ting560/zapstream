@@ -10,9 +10,7 @@ import {
   Loader2,
   Menu,
   X,
-  Server,
   LayoutGrid,
-  List,
   ChevronRight,
   Play,
   RefreshCw,
@@ -417,64 +415,33 @@ export function IPTVApp() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 ml-2 sm:ml-4">
+          <div className="flex items-center gap-3 ml-2 sm:ml-4 text-sm font-medium">
             {TABS.filter((t) => !disabledTabs.includes(t.kind)).map((t) => (
-              <Button
+              <button
                 key={t.kind}
-                variant="ghost"
-                size="sm"
                 onClick={() => {
                   setActiveTab(t.kind);
-                  setShowFavorites(false);
                   setShowCanais(false);
                 }}
                 className={cn(
-                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                  activeTab === t.kind && !showFavorites
-                    ? "bg-zinc-800 text-white"
-                    : ""
+                  "transition-colors",
+                  activeTab === t.kind
+                    ? "text-white"
+                    : "text-zinc-500 hover:text-zinc-300"
                 )}
               >
-                <t.icon className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t.label}</span>
-              </Button>
+                {t.label}
+              </button>
             ))}
             {!disabledTabs.includes("canais") && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => {
                   window.open("https://blueviolet-newt-188057.hostingersite.com/200/?c=sportv", "_blank");
                 }}
-                className={cn(
-                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                )}
+                className="text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                <Radio className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Canais</span>
-              </Button>
-            )}
-            {!disabledTabs.includes("favoritos") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setShowFavorites(true); setShowCanais(false); }}
-                className={cn(
-                  "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                  showFavorites ? "bg-zinc-800 text-white" : ""
-                )}
-              >
-                <Heart className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Favoritos</span>
-                {favorites.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="ml-1 h-5 px-1.5 bg-red-600 text-white"
-                  >
-                    {favorites.length}
-                  </Badge>
-                )}
-              </Button>
+                Canais
+              </button>
             )}
           </div>
 
@@ -685,55 +652,7 @@ export function IPTVApp() {
             </div>
           </div>
 
-          {/* Stats bar */}
-          <div className="px-4 sm:px-6 py-3 border-b border-zinc-800 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              {showCanais ? (
-                <Radio className="h-4 w-4 text-zinc-500 shrink-0" />
-              ) : (
-                <Server className="h-4 w-4 text-zinc-500 shrink-0" />
-              )}
-              <span className="text-xs text-zinc-400 truncate">
-                {showCanais ? "Canais Embed" : credentials.server}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {!showFavorites && !showCanais && (
-                <span className="text-xs text-zinc-400">
-                  {totalCount.toLocaleString("pt-BR")} itens
-                </span>
-              )}
-              {showCanais && (
-                <span className="text-xs text-zinc-400">
-                  {canaisFiltrados.length} canais
-                </span>
-              )}
-              <div className="hidden sm:flex items-center gap-1 border border-zinc-800 rounded-lg p-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("grid")}
-                  className={cn(
-                    "h-7 w-7",
-                    viewMode === "grid" ? "bg-zinc-800 text-white" : "text-zinc-500"
-                  )}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "h-7 w-7",
-                    viewMode === "list" ? "bg-zinc-800 text-white" : "text-zinc-500"
-                  )}
-                >
-                  <List className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
+
 
           {/* Grid */}
           <ScrollArea className="flex-1">
