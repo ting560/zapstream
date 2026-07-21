@@ -68,7 +68,7 @@ export function ContentCard({
     >
       <div
         className={cn(
-          "relative w-full bg-muted/30 overflow-hidden hidden sm:block",
+          "relative w-full bg-muted/30 overflow-hidden",
           kind === "live" ? "aspect-square" : "aspect-[2/3]"
         )}
       >
