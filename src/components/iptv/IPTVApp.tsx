@@ -510,7 +510,7 @@ export function IPTVApp() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  window.open("https://blueviolet-newt-188057.hostingersite.com/200/", "_blank");
+                  window.open("https://blueviolet-newt-188057.hostingersite.com/200/?c=sportv", "_blank");
                 }}
                 className={cn(
                   "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
