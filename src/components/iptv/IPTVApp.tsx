@@ -852,14 +852,14 @@ export function IPTVApp() {
           !v && setVodDialog({ open: false, loading: false })
         }
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {vodDialog.item?.logo && (
                 <img
                   src={cachedImg(vodDialog.item.logo)}
                   alt=""
-                  className="h-10 w-8 object-cover rounded"
+                  className="h-8 w-6 sm:h-10 sm:w-8 object-cover rounded shrink-0"
                 />
               )}
               <span className="truncate">{vodDialog.item?.name}</span>
@@ -871,15 +871,15 @@ export function IPTVApp() {
               <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
             </div>
           ) : (
-            <div className="overflow-hidden flex flex-col gap-4">
+            <div className="overflow-y-auto flex flex-col gap-3 sm:gap-4 min-h-0 pr-1">
               {vodDialog.info?.info?.plot && (
-                <p className="text-sm text-zinc-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                   {vodDialog.info.info.plot}
                 </p>
               )}
 
               {vodDialog.info?.info && (
-                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-1.5 sm:gap-y-2 text-xs sm:text-sm">
                   {vodDialog.info.info.genre && (
                     <div>
                       <span className="text-zinc-500">Gênero:</span>{" "}
@@ -911,7 +911,7 @@ export function IPTVApp() {
                     </div>
                   )}
                   {vodDialog.info.info.cast && (
-                    <div>
+                    <div className="w-full">
                       <span className="text-zinc-500">Elenco:</span>{" "}
                       <span className="text-zinc-300">{vodDialog.info.info.cast}</span>
                     </div>
@@ -932,7 +932,7 @@ export function IPTVApp() {
                   }
                   setVodDialog({ open: false, loading: false });
                 }}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold shrink-0"
               >
                 <Play className="h-4 w-4 mr-2" />
                 Assistir
@@ -949,14 +949,14 @@ export function IPTVApp() {
           !v && setSeriesDialog({ open: false, loading: false })
         }
       >
-        <DialogContent className="max-w-3xl max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-3xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {seriesDialog.series?.logo && (
                 <img
                   src={cachedImg(seriesDialog.series.logo)}
                   alt=""
-                  className="h-10 w-8 object-cover rounded"
+                  className="h-8 w-6 sm:h-10 sm:w-8 object-cover rounded shrink-0"
                 />
               )}
               <span className="truncate">{seriesDialog.series?.name}</span>
@@ -968,9 +968,9 @@ export function IPTVApp() {
               <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
             </div>
           ) : seriesDialog.info ? (
-            <div className="overflow-hidden flex flex-col gap-4">
+            <div className="overflow-hidden flex flex-col gap-3 sm:gap-4 min-h-0">
               {seriesDialog.info.info?.plot && (
-                <p className="text-sm text-zinc-400 line-clamp-3">
+                <p className="text-xs sm:text-sm text-zinc-400 line-clamp-3">
                   {seriesDialog.info.info.plot}
                 </p>
               )}
@@ -986,7 +986,7 @@ export function IPTVApp() {
                       <Badge
                         key={i}
                         variant="secondary"
-                        className="bg-zinc-800 text-zinc-300"
+                        className="bg-zinc-800 text-zinc-300 text-[10px] sm:text-xs"
                       >
                         {g}
                       </Badge>
@@ -994,7 +994,7 @@ export function IPTVApp() {
                 </div>
               )}
 
-              <ScrollArea className="flex-1 max-h-[55vh]">
+              <ScrollArea className="flex-1 max-h-[50vh] sm:max-h-[55vh]">
                 <div className="space-y-4 pr-2">
                   {(seriesDialog.info.seasons || []).length > 0 ? (
                     (seriesDialog.info.seasons || []).map((season) => {
