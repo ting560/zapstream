@@ -17,33 +17,7 @@ async function callApi(
   action?: string,
   extra?: Record<string, string>
 ) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-
-  const base = credentials.server.replace(/\/$/, "");
-  const url = new URL(base + "/player_api.php");
-  url.searchParams.set("username", credentials.username);
-  url.searchParams.set("password", credentials.password);
-  if (action) url.searchParams.set("action", action);
-  for (const [k, v] of Object.entries(extra || {})) {
-    if (v) url.searchParams.set(k, v);
-  }
-
-  try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-    clearTimeout(timeout);
-    if (!res.ok) throw new Error(`Servidor respondeu ${res.status}`);
-    return await res.json();
-  } catch {
-    clearTimeout(timeout);
-    return callApiViaProxy(credentials, action, extra);
-  }
+  return callApiViaProxy(credentials, action, extra);
 }
 
 async function callApiViaProxy(
@@ -147,5 +121,5 @@ export function buildStreamUrl(
   } else {
     direct = `${base}/series/${u}/${p}/${id}.${ext}`;
   }
-  return direct.startsWith("https://") ? direct : `/api/stream?url=${encodeURIComponent(direct)}`;
+  return `/api/stream?url=${encodeURIComponent(direct)}`;
 }
