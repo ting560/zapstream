@@ -160,26 +160,23 @@ export function IPTVApp() {
     try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
   };
 
-  // Pré-carregar dados do arquivo estático para cache localStorage
-  const staticRef = useRef(false);
+  // Tentar carregar dados estáticos para cache (opcional)
   useEffect(() => {
-    if (staticRef.current) return;
-    staticRef.current = true;
     fetch("/data/iptv-data.json")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: any) => {
         try {
-          if (!localStorage.getItem("cat_live") && Array.isArray(data.categoriesLive))
+          if (Array.isArray(data.categoriesLive))
             localStorage.setItem("cat_live", JSON.stringify(data.categoriesLive));
-          if (!localStorage.getItem("cat_vod") && Array.isArray(data.categoriesVod))
+          if (Array.isArray(data.categoriesVod))
             localStorage.setItem("cat_vod", JSON.stringify(data.categoriesVod));
-          if (!localStorage.getItem("cat_series") && Array.isArray(data.categoriesSeries))
+          if (Array.isArray(data.categoriesSeries))
             localStorage.setItem("cat_series", JSON.stringify(data.categoriesSeries));
-          if (!localStorage.getItem("items_live_all") && Array.isArray(data.liveStreams))
+          if (Array.isArray(data.liveStreams))
             localStorage.setItem("items_live_all", JSON.stringify(data.liveStreams));
-          if (!localStorage.getItem("items_vod_all") && Array.isArray(data.vodStreams))
+          if (Array.isArray(data.vodStreams))
             localStorage.setItem("items_vod_all", JSON.stringify(data.vodStreams));
-          if (!localStorage.getItem("items_series_all") && Array.isArray(data.series))
+          if (Array.isArray(data.series))
             localStorage.setItem("items_series_all", JSON.stringify(data.series));
         } catch {}
       })
