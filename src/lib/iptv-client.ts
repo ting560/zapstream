@@ -113,13 +113,15 @@ export function buildStreamUrl(
   const base = credentials.server.replace(/\/$/, "");
   const u = encodeURIComponent(credentials.username);
   const p = encodeURIComponent(credentials.password);
+  // Many Xtream servers serve all content (live, vod, series) via HLS
+  const useHls = true;
   let direct: string;
   if (kind === "live") {
     direct = `${base}/live/${u}/${p}/${id}.m3u8`;
   } else if (kind === "vod") {
-    direct = `${base}/movie/${u}/${p}/${id}.${ext}`;
+    direct = `${base}/movie/${u}/${p}/${id}.${useHls ? "m3u8" : ext}`;
   } else {
-    direct = `${base}/series/${u}/${p}/${id}.${ext}`;
+    direct = `${base}/series/${u}/${p}/${id}.${useHls ? "m3u8" : ext}`;
   }
   return `/api/stream?url=${encodeURIComponent(direct)}`;
 }

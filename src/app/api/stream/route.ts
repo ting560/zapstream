@@ -22,7 +22,8 @@ function rewriteManifest(manifest: string, finalUrl: string): string {
   }).join("\n");
 }
 
-function fetchUrl(target: string, headers: Record<string, string>): Promise<{ status: number; body: Buffer; headers: Record<string, string> }> {
+async function fetchUrl(target: string, headers: Record<string, string>, redirects = 5): Promise<{ status: number; body: Buffer; headers: Record<string, string> }> {
+  if (redirects <= 0) throw new Error("Too many redirects");
   return new Promise((resolve, reject) => {
     const u = new URL(target);
     const mod = u.protocol === "https:" ? https : http;
@@ -35,6 +36,13 @@ function fetchUrl(target: string, headers: Record<string, string>): Promise<{ st
       timeout: 30000,
     };
     const req = mod.request(options, (res) => {
+      const status = res.statusCode || 500;
+      // Follow redirects
+      if (status >= 300 && status < 400 && res.headers.location) {
+        const redirectUrl = new URL(res.headers.location, target).toString();
+        resolve(fetchUrl(redirectUrl, headers, redirects - 1));
+        return;
+      }
       const chunks: Buffer[] = [];
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
@@ -43,11 +51,7 @@ function fetchUrl(target: string, headers: Record<string, string>): Promise<{ st
           if (typeof v === "string") respHeaders[k] = v;
           else if (Array.isArray(v)) respHeaders[k] = v[0];
         }
-        resolve({
-          status: res.statusCode || 500,
-          body: Buffer.concat(chunks),
-          headers: respHeaders,
-        });
+        resolve({ status, body: Buffer.concat(chunks), headers: respHeaders });
       });
     });
     req.on("error", reject);
