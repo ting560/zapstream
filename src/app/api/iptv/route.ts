@@ -44,9 +44,11 @@ export async function callXtreamAPI(
 
   try {
     const { status, body } = await httpRequest(url.toString());
-    if (status === 403 && url.protocol === "http:") {
-      const httpsUrl = url.toString().replace(/^http:/, "https:").replace(/:80\//, ":443/");
-      const { status: s2, body: b2 } = await httpRequest(httpsUrl);
+    if (status === 403) {
+      const fallbackUrl = url.protocol === "http:"
+        ? url.toString().replace(/^http:/, "https:")
+        : url.toString().replace(/^https:/, "http:");
+      const { status: s2, body: b2 } = await httpRequest(fallbackUrl);
       if (s2 === 200) {
         try { return { ok: true, data: JSON.parse(b2) }; } catch { return { ok: false, error: "Resposta inválida do servidor" }; }
       }

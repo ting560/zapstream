@@ -490,9 +490,9 @@ export function IPTVApp() {
                 disabled={switchingServer}
                 className="bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500/50 appearance-none cursor-pointer max-w-[140px] truncate"
               >
-                {servers.map((s) => (
+                {servers.map((s, i) => (
                   <option key={s.id} value={s.url}>
-                    {s.name}
+                    Servidor {i + 1}
                   </option>
                 ))}
               </select>
