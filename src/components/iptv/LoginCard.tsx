@@ -1,62 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tv, Loader2, Server, User, Lock, AlertCircle, Eye, EyeOff, Settings, ChevronDown } from "lucide-react";
+import { Tv, Loader2, Server, User, Lock, AlertCircle, Eye, EyeOff, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIPTVStore } from "@/lib/iptv-store";
 import { authenticate } from "@/lib/iptv-client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-interface ServerItem {
-  id: string;
-  name: string;
-  url: string;
-  username: string;
-  password: string;
-  active: boolean;
-}
 
 export function LoginCard() {
   const router = useRouter();
   const { credentials, setCredentials, setAuthenticated } = useIPTVStore();
-  const [form, setForm] = useState(credentials);
+  const [form, setForm] = useState({ server: credentials.server || "", username: credentials.username || "", password: credentials.password || "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [savedServers, setSavedServers] = useState<ServerItem[]>([]);
-  const [loadingServers, setLoadingServers] = useState(true);
-  const [selectedServerId, setSelectedServerId] = useState("");
-
-  useEffect(() => {
-    fetch("/api/admin/servers")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const active = data.filter((s: ServerItem) => s.active);
-          setSavedServers(active);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingServers(false));
-  }, []);
-
-  const handleSelectServer = (id: string) => {
-    setSelectedServerId(id);
-    const server = savedServers.find((s) => s.id === id);
-    if (server) {
-      setForm({ server: server.url, username: server.username, password: server.password });
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,22 +69,6 @@ export function LoginCard() {
 
         <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-4">
-            {!loadingServers && savedServers.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Servidor Salvo</Label>
-                <Select value={selectedServerId} onValueChange={handleSelectServer}>
-                  <SelectTrigger className="bg-zinc-800/50 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecionar servidor..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-700 text-white">
-                    {savedServers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="server" className="text-zinc-300">Servidor</Label>
               <div className="relative">
@@ -132,7 +76,7 @@ export function LoginCard() {
                 <Input
                   id="server" type="text" required
                   value={form.server}
-                  onChange={(e) => { setForm({ ...form, server: e.target.value }); setSelectedServerId(""); }}
+                  onChange={(e) => setForm({ ...form, server: e.target.value })}
                   placeholder="https://seu-servidor.com"
                   className="bg-zinc-800/50 border-zinc-700 text-white pl-10 focus-visible:ring-red-500/50"
                 />
