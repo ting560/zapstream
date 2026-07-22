@@ -99,23 +99,26 @@ foreach ($canais as $ch) {
 
 $canal = $_GET['c'] ?? ($canais[0]['id'] ?? 'combate');
 $cdn = '1007.cdn10embed.xyz';
+$ref = "https://13embeddecanais.xyz/$canal/";
 
 // Proxy
 if (isset($_GET['f'])) {
+    $f = $_GET['f'];
+    // Sanitize filename to prevent path traversal
+    $f = preg_replace('/[^a-zA-Z0-9_.\/-]/', '', $f);
     $base = "https://$cdn/$canal";
-    $ref = "https://13embeddecanais.xyz/$canal/";
-    $url = $base . '/' . $_GET['f'];
+    $url = $base . '/' . ltrim($f, '/');
     $ctx = stream_context_create(['http' => ['header' => "Referer: $ref\r\n", 'timeout' => 10]]);
     $data = @file_get_contents($url, false, $ctx);
     if ($data === false) { http_response_code(502); exit; }
-    $ext = pathinfo($_GET['f'], PATHINFO_EXTENSION);
+    $ext = pathinfo($f, PATHINFO_EXTENSION);
     if (in_array($ext, ['m3u8', 'm3u'])) {
         header('Content-Type: application/vnd.apple.mpegurl');
         foreach (explode("\n", $data) as $line) {
             $t = trim($line);
             if (preg_match('/^(#EXT-X-MAP:URI=")([^"]+)(".*)?$/i', $t, $m))
                 echo $m[1] . '?c=' . rawurlencode($canal) . '&f=' . rawurlencode($m[2]) . ($m[3] ?? '') . "\n";
-            elseif (preg_match('/^([a-zA-Z0-9_.-]+\.(mp4|m4s|ts|m3u8))$/', $t, $m))
+            elseif (preg_match('/^([a-zA-Z0-9_.\/-]+\.(mp4|m4s|ts|m3u8))$/', $t, $m))
                 echo '?c=' . rawurlencode($canal) . '&f=' . rawurlencode($m[1]) . "\n";
             else
                 echo $line . "\n";
@@ -141,7 +144,6 @@ if (isset($_GET['f'])) {
 html,body{height:100%;background:#0a0a0a;color:#fff;font-family:Arial,sans-serif}
 body{display:flex;flex-direction:column}
 .wrapper{display:flex;flex:1;min-height:0}
-#ad-bottom{flex-shrink:0;background:#0a0a0a;display:flex;justify-content:center;align-items:center;padding:2px 0}
 .sidebar{width:250px;min-width:250px;background:#111;overflow-y:auto;border-right:1px solid #222;display:flex;flex-direction:column}
 .sidebar h2{padding:14px 12px 8px;font-size:13px;color:#00f3ff;text-transform:uppercase;letter-spacing:1px}
 #busca{width:calc(100% - 16px);margin:8px;padding:8px 10px;border:1px solid #333;border-radius:6px;background:#1a1a1a;color:#fff;font-size:13px;outline:none}
@@ -157,7 +159,6 @@ video{width:100%;max-width:100%;max-height:100vh;display:block;outline:none}
 @media(max-width:768px){
 .wrapper{flex-direction:column}
 .sidebar{width:100%;min-width:0;max-height:35vh;border-right:none;border-bottom:1px solid #222}
-#ad-bottom iframe{max-width:100%}
 }
 </style>
 </head>
@@ -182,7 +183,6 @@ video{width:100%;max-width:100%;max-height:100vh;display:block;outline:none}
 </div>
 </div>
 </div>
-<div id="ad-bottom"></div>
 <script>
 const src = '?c=<?= rawurlencode($canal) ?>&f=index.m3u8';
 
@@ -210,20 +210,6 @@ if (Hls.isSupported()) {
   document.getElementById('v').src = src;
 } else {
   document.querySelector('.video-wrap').innerHTML = '<p style="color:#f44;padding:20px">HLS não suportado</p>';
-}
-
-const adDiv = document.getElementById("ad-bottom");
-if (adDiv) {
-  atOptions = {
-    'key' : '23a140354590022c1f365a94907191a0',
-    'format' : 'iframe',
-    'height' : 50,
-    'width' : 320,
-    'params' : {}
-  };
-  const s = document.createElement("script");
-  s.src = "https://www.highperformanceformat.com/23a140354590022c1f365a94907191a0/invoke.js";
-  adDiv.appendChild(s);
 }
 </script>
 </body>

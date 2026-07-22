@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useIPTVStore } from "@/lib/iptv-store";
 import { IPTVApp } from "@/components/iptv/IPTVApp";
-import { Ads } from "@/components/Ads";
 import { authenticate } from "@/lib/iptv-client";
 import { useTracking } from "@/hooks/useTracking";
 
@@ -56,10 +55,5 @@ export default function Home() {
     );
   }
 
-  return (
-    <>
-      <IPTVApp />
-      <Ads />
-    </>
-  );
+  return <IPTVApp />;
 }
