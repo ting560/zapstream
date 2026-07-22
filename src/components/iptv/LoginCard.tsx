@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tv, Loader2, Server, User, Lock, AlertCircle, Eye, EyeOff, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,22 @@ import { authenticate } from "@/lib/iptv-client";
 
 export function LoginCard() {
   const router = useRouter();
-  const { credentials, setCredentials, setAuthenticated } = useIPTVStore();
-  const [form, setForm] = useState({ server: credentials.server || "", username: credentials.username || "", password: credentials.password || "" });
+  const { setCredentials, setAuthenticated } = useIPTVStore();
+  const [form, setForm] = useState({ server: "", username: "", password: "" });
+
+  // Limpar credenciais salvas localmente ao carregar a página
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("iptv-store");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.state?.credentials) {
+          parsed.state.credentials = { server: "", username: "", password: "" };
+          localStorage.setItem("iptv-store", JSON.stringify(parsed));
+        }
+      }
+    } catch {}
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
