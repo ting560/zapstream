@@ -58,4 +58,5 @@ server.log
 workspace-*
 # Database
 *.db
-*.db-journal
+*.db-journal200
+

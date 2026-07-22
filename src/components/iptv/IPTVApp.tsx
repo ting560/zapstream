@@ -435,10 +435,11 @@ export function IPTVApp() {
             ))}
             {!disabledTabs.includes("canais") && (
               <button
-                onClick={() => {
-                  window.open("https://blueviolet-newt-188057.hostingersite.com/200/?c=sportv", "_blank");
-                }}
-                className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                onClick={() => setShowCanais(true)}
+                className={cn(
+                  "transition-colors",
+                  showCanais ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                )}
               >
                 Canais
               </button>
