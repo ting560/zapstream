@@ -44,62 +44,57 @@ export function PlayerModal({ item, credentials, onClose }: PlayerModalProps) {
       hlsRef.current = null;
     }
 
-    if (item.kind === "live" || url.endsWith(".m3u8")) {
-      // Stream HLS - usar hls.js
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: item.kind === "live",
-          backBufferLength: 30,
-        });
-        hlsRef.current = hls;
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video
-            .play()
-            .then(() => setStatus("playing"))
-            .catch(() => setStatus("playing"));
-        });
-        hls.on(Hls.Events.ERROR, (_e, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                setErrorMsg(
-                  "Erro de rede ao carregar o stream. O canal pode estar offline ou o servidor bloqueou a conexão."
-                );
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                setErrorMsg(
-                  "Erro de mídia. Formato de stream incompatível com o navegador."
-                );
-                break;
-              default:
-                setErrorMsg(
-                  "Não foi possível reproduzir este conteúdo. Tente outro canal."
-                );
-                break;
-            }
-            setStatus("error");
+    // Tentar HLS.js primeiro (funciona para .m3u8 e também para .mp4 em servidores que servem HLS)
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: item.kind === "live",
+        backBufferLength: 30,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video
+          .play()
+          .then(() => setStatus("playing"))
+          .catch(() => setStatus("playing"));
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              setErrorMsg(
+                "Erro de rede ao carregar o stream. O canal pode estar offline ou o servidor bloqueou a conexão."
+              );
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setErrorMsg(
+                "Erro de mídia. Formato de stream incompatível com o navegador."
+              );
+              break;
+            default:
+              setErrorMsg(
+                "Não foi possível reproduzir este conteúdo. Tente outro canal."
+              );
+              break;
           }
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari nativo
-        video.src = url;
-        video.addEventListener(
-          "loadedmetadata",
-          () => {
-            video.play().catch(() => {});
-            setStatus("playing");
-          },
-          { once: true }
-        );
-      } else {
-        setErrorMsg("Seu navegador não suporta HLS.");
-        setStatus("error");
-      }
-    } else {
-      // VOD ou Series (mp4, mkv, etc) - tentar playback direto
+          setStatus("error");
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl") && (item.kind === "live" || url.endsWith(".m3u8"))) {
+      // Safari nativo (apenas para .m3u8)
+      video.src = url;
+      video.addEventListener(
+        "loadedmetadata",
+        () => {
+          video.play().catch(() => {});
+          setStatus("playing");
+        },
+        { once: true }
+      );
+    } else if (!url.endsWith(".m3u8")) {
+      // Fallback para VOD/Series: playback direto do navegador
       video.src = url;
       video.addEventListener(
         "loadedmetadata",
@@ -113,12 +108,15 @@ export function PlayerModal({ item, credentials, onClose }: PlayerModalProps) {
         "error",
         () => {
           setErrorMsg(
-            `Não foi possível reproduzir este arquivo (.${ext}). Navegadores só conseguem tocar .mp4/.webm nativamente; .mkv/.avi podem não funcionar.`
+            `Não foi possível reproduzir. Formato não suportado pelo navegador.`
           );
           setStatus("error");
         },
         { once: true }
       );
+    } else {
+      setErrorMsg("Seu navegador não suporta HLS.");
+      setStatus("error");
     }
 
     return () => {
