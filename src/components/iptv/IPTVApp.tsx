@@ -849,7 +849,7 @@ export function IPTVApp() {
           !v && setVodDialog({ open: false, loading: false })
         }
       >
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
+        <DialogContent aria-describedby={undefined} className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {vodDialog.item?.logo && (
@@ -946,7 +946,7 @@ export function IPTVApp() {
           !v && setSeriesDialog({ open: false, loading: false })
         }
       >
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-3xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
+        <DialogContent aria-describedby={undefined} className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-3xl max-h-[90vh] sm:max-h-[85vh] bg-zinc-900 border-zinc-800 text-white overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {seriesDialog.series?.logo && (
