@@ -23,7 +23,51 @@ function getFilePath() {
   return path.join(process.cwd(), "db", "settings.json");
 }
 
+async function readFromSupabase(): Promise<AppSettings | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    const { data, error } = await supabase.from("app_settings").select("*").single();
+    if (error) throw error;
+    if (!data) return null;
+    return {
+      adultCategories: data.adult_categories || [],
+      pin: data.pin || "123456",
+      disabledTabs: data.disabled_tabs || [],
+      adminPassword: data.admin_password || "Frenesi04",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeToSupabase(settings: AppSettings): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return false;
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    const { error } = await supabase.from("app_settings").upsert({
+      id: "default",
+      adult_categories: settings.adultCategories,
+      pin: settings.pin,
+      disabled_tabs: settings.disabledTabs,
+      admin_password: settings.adminPassword,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+    if (error) throw error;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function readSettings(): Promise<AppSettings> {
+  // Try Supabase first
+  const fromSupabase = await readFromSupabase();
+  if (fromSupabase !== null) return fromSupabase;
+
+  // Fallback to file
   const filePath = getFilePath();
   try {
     const data = await fs.readFile(filePath, "utf-8");
@@ -35,6 +79,11 @@ async function readSettings(): Promise<AppSettings> {
 }
 
 async function writeSettings(settings: AppSettings): Promise<void> {
+  // Try Supabase first
+  const wrote = await writeToSupabase(settings);
+  if (wrote) return;
+
+  // Fallback to file
   const filePath = getFilePath();
   try {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -81,7 +130,8 @@ export async function PUT(req: NextRequest) {
       settings.adminPassword = String(adminPassword);
     }
     await writeSettings(settings);
-    return NextResponse.json(settings);
+    const { adminPassword: _, ...safe } = settings;
+    return NextResponse.json(safe);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
