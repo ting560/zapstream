@@ -166,17 +166,17 @@ export function IPTVApp() {
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: any) => {
         try {
-          if (Array.isArray(data.categoriesLive))
+          if (Array.isArray(data.categoriesLive) && data.categoriesLive.length > 0)
             localStorage.setItem("cat_live", JSON.stringify(data.categoriesLive));
-          if (Array.isArray(data.categoriesVod))
+          if (Array.isArray(data.categoriesVod) && data.categoriesVod.length > 0)
             localStorage.setItem("cat_vod", JSON.stringify(data.categoriesVod));
-          if (Array.isArray(data.categoriesSeries))
+          if (Array.isArray(data.categoriesSeries) && data.categoriesSeries.length > 0)
             localStorage.setItem("cat_series", JSON.stringify(data.categoriesSeries));
-          if (Array.isArray(data.liveStreams))
+          if (Array.isArray(data.liveStreams) && data.liveStreams.length > 0)
             localStorage.setItem("items_live_all", JSON.stringify(data.liveStreams));
-          if (Array.isArray(data.vodStreams))
+          if (Array.isArray(data.vodStreams) && data.vodStreams.length > 0)
             localStorage.setItem("items_vod_all", JSON.stringify(data.vodStreams));
-          if (Array.isArray(data.series))
+          if (Array.isArray(data.series) && data.series.length > 0)
             localStorage.setItem("items_series_all", JSON.stringify(data.series));
         } catch {}
       })
