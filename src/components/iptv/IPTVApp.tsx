@@ -62,6 +62,7 @@ const TABS: { kind: ContentKind; label: string; icon: any }[] = [
 export function IPTVApp() {
   const {
     credentials,
+    setCredentials,
     setAuthenticated,
     activeTab,
     setActiveTab,
@@ -129,6 +130,18 @@ export function IPTVApp() {
       .catch(() => {});
   }, []);
 
+  // Servers
+  const [servers, setServers] = useState<{ id: string; name: string; url: string; username: string; password: string; active: boolean }[]>([]);
+  const [switchingServer, setSwitchingServer] = useState(false);
+  useEffect(() => {
+    fetch("/api/admin/servers")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setServers(data.filter((s: any) => s.active));
+      })
+      .catch(() => {});
+  }, []);
+
   // Carregar canais do JSON
   useEffect(() => {
     setLoadingCanais(true);
@@ -151,6 +164,29 @@ export function IPTVApp() {
       setPendingPlay(null);
     }
   };
+
+  const handleSwitchServer = useCallback(async (server: typeof servers[0]) => {
+    if (server.url === credentials.server) return;
+    setSwitchingServer(true);
+    const newCreds = { server: server.url, username: server.username, password: server.password };
+    setCredentials(newCreds);
+    try {
+      const { authenticate } = await import("@/lib/iptv-client");
+      await authenticate(newCreds);
+      setAuthenticated(true);
+      ["cat_live", "cat_vod", "cat_series", "items_live_all", "items_vod_all", "items_series_all"].forEach((k) => {
+        localStorage.removeItem(k);
+      });
+      Object.keys(localStorage).filter((k) => k.startsWith("cat_") || k.startsWith("items_") || k.startsWith("cache_")).forEach((k) => localStorage.removeItem(k));
+      setCategories([]);
+      setItems([]);
+      setActiveCategory("all");
+    } catch {
+      setCredentials(credentials);
+    } finally {
+      setSwitchingServer(false);
+    }
+  }, [credentials, setCredentials, setAuthenticated, setActiveCategory]);
 
   // Cache helpers
   const cacheGet = (key: string) => {
@@ -442,7 +478,29 @@ export function IPTVApp() {
             )}
           </div>
 
-          {/* Search (desktop only) */}
+          {/* Server selector */}
+          {servers.length > 1 && (
+            <div className="ml-2 sm:ml-3 shrink-0">
+              <select
+                value={credentials.server}
+                onChange={(e) => {
+                  const s = servers.find((sv) => sv.url === e.target.value);
+                  if (s) handleSwitchServer(s);
+                }}
+                disabled={switchingServer}
+                className="bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500/50 appearance-none cursor-pointer max-w-[140px] truncate"
+              >
+                {servers.map((s) => (
+                  <option key={s.id} value={s.url}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {switchingServer && (
+                <Loader2 className="inline h-3 w-3 ml-1 animate-spin text-zinc-500" />
+              )}
+            </div>
+          )}
           <div className="hidden lg:block flex-1 max-w-md ml-auto">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
