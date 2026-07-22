@@ -156,6 +156,21 @@ export function IPTVApp() {
       .finally(() => setLoadingCanais(false));
   }, []);
 
+  useEffect(() => {
+    (window as any).atOptions = {
+      key: "443dfd27df99ddf8dea113eceb887912",
+      format: "iframe",
+      height: 250,
+      width: 300,
+      params: {},
+    };
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.highperformanceformat.com/443dfd27df99ddf8dea113eceb887912/invoke.js";
+    document.body.appendChild(s);
+    return () => { s.remove(); };
+  }, []);
+
   const handlePinUnlock = () => {
     setPinVerified(true);
     setShowPinModal(false);
@@ -710,7 +725,7 @@ export function IPTVApp() {
 
 
           {/* Grid */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 pb-[270px]">
             <div className="p-4 sm:p-6">
               {showCanais ? (
                 loadingCanais ? (
@@ -1133,6 +1148,11 @@ export function IPTVApp() {
         </DialogContent>
       </Dialog>
 
+
+      {/* Banner Ad */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-zinc-950/80 backdrop-blur-sm border-t border-zinc-800 py-2">
+        <div id="container-83db2da36f450d487d008356efe65b22" />
+      </div>
 
     </div>
   );
