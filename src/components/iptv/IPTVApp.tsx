@@ -784,27 +784,14 @@ export function IPTVApp() {
                   <p className="text-sm text-zinc-500 max-w-md">{error}</p>
                 </div>
               ) : loadingItems && !showFavorites ? (
-                <div
-                  className={cn(
-                    "grid gap-3",
-                    viewMode === "grid"
-                      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                  )}
-                >
-                  {Array.from({ length: 18 }).map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      className={cn(
-                        "bg-zinc-800",
-                        viewMode === "grid"
-                          ? activeTab === "live"
-                            ? "aspect-square rounded-xl"
-                            : "aspect-[2/3] rounded-xl"
-                          : "h-16 rounded-lg"
-                      )}
-                    />
-                  ))}
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Loader2 className="h-10 w-10 text-zinc-600 animate-spin mb-4" />
+                  <p className="text-zinc-300 font-medium">
+                    {activeTab === "vod" ? "Aguarde, carregando filmes..." :
+                     activeTab === "series" ? "Aguarde, carregando séries..." :
+                     "Aguarde, carregando canais..."}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">Isso pode levar alguns segundos</p>
                 </div>
               ) : displayItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
